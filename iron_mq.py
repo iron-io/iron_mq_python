@@ -43,7 +43,7 @@ class IronMQ:
     DEFAULT_HOST = "mq-aws-us-east-1.iron.io"
     USER_AGENT = "IronMQ Python v0.3"
 
-    def __init__(self, token=None, project_id=None, host=DEFAULT_HOST, port=80,
+    def __init__(self, token=None, project_id=None, host=DEFAULT_HOST, port=443,
             version=1, protocol='https', config=None, app_engine=False):
         """Prepare a configured instance of the API wrapper and return it.
 
@@ -52,7 +52,7 @@ class IronMQ:
         project_id -- The ID for the project, found on http://hud.iron.io
         host -- The hostname of the API server.
                 Defaults to mq-aws-us-east-1.iron.io.
-        port -- The port of the API server. Defaults to 80.
+        port -- The port of the API server. Defaults to 443.
         version -- The API version to use. Defaults to 1.
         protocol -- The protocol to use. Defaults to https.
         config -- The config file to draw config values from. Defaults to None.
