@@ -15,10 +15,8 @@ class TestIronMQ(unittest.TestCase):
         self.mq = IronMQ(token=self.token, project_id=self.project_id)
 
     def test_headers(self):
-        self.assertEqual(self.mq.headers['Accept'], "application/json")
-        self.assertEqual(self.mq.headers['Accept-Encoding'],
-                "gzip, deflate")
-        self.assertEqual(self.mq.headers['User-Agent'],
+        self.assertEqual(IronMQ._IronMQ__headers['Accept'], "application/json")
+        self.assertEqual(IronMQ._IronMQ__headers['User-Agent'],
                 "IronMQ Python v0.3")
 
     def test_protocols(self):
