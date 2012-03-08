@@ -1,6 +1,6 @@
 # IronMQ For Python
+import httplib
 import json
-import urllib2
 import ConfigParser
 
 
@@ -22,23 +22,6 @@ class IllegalArgumentException(Exception):
         return repr(self.message)
 
 
-class RequestWithMethod(urllib2.Request):
-
-    """Wrap urllib2 to make DELETE requests possible."""
-
-    def __init__(self, url, method, data=None, headers={},
-            origin_req_host=None, unverifiable=False):
-        self._method = method
-        return urllib2.Request.__init__(self, url, data, headers,
-                origin_req_host, unverifiable)
-
-    def get_method(self):
-        if self._method:
-            return self._method
-        else:
-            return urllib2.Request.get_method(self)
-
-
 class IronMQ:
     DEFAULT_HOST = "mq-aws-us-east-1.iron.io"
     USER_AGENT = "IronMQ Python v0.3"
@@ -56,8 +39,7 @@ class IronMQ:
         version -- The API version to use. Defaults to 1.
         protocol -- The protocol to use. Defaults to https.
         config -- The config file to draw config values from. Defaults to None.
-        app_engine -- Whether to run in App Engine compatibility mode.
-                      Defaults to False.
+        app_engine -- Deprecated; does nothing
         """
         self.token = token
         self.version = version
@@ -66,7 +48,6 @@ class IronMQ:
         self.host = host
         self.port = port
         self.version = version
-        self.app_engine = app_engine
         if config is not None:
             config_file = ConfigParser.RawConfigParser()
             config_file.read(config)
@@ -101,6 +82,19 @@ class IronMQ:
                 self.version)
         self.__setCommonHeaders()
 
+    def __req(self, url, method, body=None, headers={}):
+        headers = dict(headers.items() + self.headers.items())
+        if self.protocol == "http":
+            conn = httplib.HTTPConnection(self.host, self.port)
+        elif self.protocol == "https":
+            conn = httplib.HTTPSConnection(self.host, self.port)
+
+        conn.request(method, url, body, headers)
+        resp = conn.getresponse()
+        body = resp.read()
+        conn.close()
+        return body
+
     def __get(self, url, headers={}):
         """Execute an HTTP GET request and return the result.
 
@@ -109,17 +103,9 @@ class IronMQ:
         headers -- A dict of headers to merge with self.headers and send
                    with the request.
         """
-        headers = dict(headers.items() + self.headers.items())
-        if not self.app_engine:
-            req = urllib2.Request(url, None, headers)
-            ret = urllib2.urlopen(req)
-            return ret.read()
-        else:
-            from google.appengine.api import urlfetch
-            return urlfetch.fetch(url=url, method=urlfetch.GET,
-                    headers=headers).content
+        return self.__req(url, "GET", headers=headers)
 
-    def __post(self, url, payload={}, headers={}):
+    def __post(self, url, payload=None, headers={}):
         """Execute an HTTP POST request and return the result.
 
         Keyword arguments:
@@ -129,42 +115,17 @@ class IronMQ:
         headers -- A dict of headers to merge with self.headers and send
                    with the request.
         """
-        headers = dict(headers.items() + self.headers.items())
-        if not self.app_engine:
-            req = urllib2.Request(url, payload, headers)
-            ret = urllib2.urlopen(req)
-            return ret.read()
-        else:
-            from google.appengine.api import urlfetch
-            if not isinstance(payload, basestring):
-                import urllib
-                payload = urllib.urlencode(payload)
-            return urlfetch.fetch(url=url, payload=payload,
-                    method=urlfetch.POST, headers=headers).content
+        return self.__req(url, "POST", body=payload, headers=headers)
 
-    def __delete(self, url, payload={}, headers={}):
+    def __delete(self, url, headers={}):
         """Execute an HTTP DELETE request and return the result.
 
         Keyword arguments:
         url -- The url to execute the request against. (Required)
-        payload -- A dict of key-value form data to send with the
-                   request. Will be urlencoded.
         headers -- A dict of headers to merge with self.headers and send
                    with the request.
         """
-        headers = dict(headers.items() + self.headers.items())
-        if not self.app_engine:
-            req = RequestWithMethod(url=url, method='DELETE', data=payload,
-                    headers=headers)
-            ret = urllib2.urlopen(req)
-            s = ret.read()
-        else:
-            from google.appengine.api import urlfetch
-            if not isinstance(payload, basestring):
-                import urllib
-                payload = urllib.urlencode(payload)
-            return urlfetch.fetch(url=url, payload=payload,
-                    method=urlfetch.DELETE, headers=headers).content
+        return self.__req(url, "DELETE", headers=headers)
 
     def __setCommonHeaders(self):
         """Modify your headers to match the JSON default values."""
@@ -228,10 +189,8 @@ class IronMQ:
             project_id = self.project_id
         url = "%sprojects/%s/queues/%s/messages/%s?oauth=%s" % (self.url,
                 project_id, queue_name, message_id, self.token)
-        req = RequestWithMethod(url, 'DELETE')
-        ret = urllib2.urlopen(req)
-        s = ret.read()
-        return json.loads(s)
+        body = self.__delete(url)
+        return json.loads(body)
 
     def postMessage(self, queue_name, messages=[], project_id=None):
         """Executes an HTTP request to create message on the queue.
