@@ -4,16 +4,6 @@ import urllib2
 import ConfigParser
 
 
-def file_exists(file):
-    """Check if a file exists."""
-    try:
-        open(file)
-    except IOError:
-        return False
-    else:
-        return True
-
-
 class IllegalArgumentException(Exception):
     def __init__(self, message):
         self.message = message
