@@ -228,3 +228,19 @@ class IronMQ:
                 project_id, queue_name, self.token, n)
         body = self.__get(url)
         return json.loads(body)
+
+    def clearQueue(self, queue_name, project_id=None):
+        """Executes an HTTP request to clear all contents of a queue.
+
+        Keyword arguments:
+        queue_name -- The name of the queue a message is being fetched from.
+                      (Required)
+        project_id -- The ID of the project that contains the queue that is being cleared.
+                      Defaults to the project ID set when the wrapper was initialised.
+        """
+        if project_id is None:
+            project_id = self.project_id
+
+        url = "%sprojects/%s/queues/%s/clear?oauth=%s" % (self.url, project_id, queue_name, self.token)
+        body = self.__get(url)
+        return json.loads(body)
