@@ -49,5 +49,14 @@ class TestIronMQ(unittest.TestCase):
         self.assertEqual(queue["size"], (queue2["size"] - 1))
         self.assertEqual(queue["size"], queue3["size"])
 
+    def test_clearQueue(self):
+        queue = self.mq.postMessage("test_queue", ["%s" % time.time()])
+        size = self.mq.getQueueDetails("test_queue")
+        self.assertTrue(size["size"] > 0)
+        self.mq.clearQueue("test_queue")
+        new_size = self.mq.getQueueDetails("test_queue")
+        self.assertEqual(new_size["size"], 0)
+
+
 if __name__ == '__main__':
     unittest.main()

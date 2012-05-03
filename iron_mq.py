@@ -1,17 +1,53 @@
 # IronMQ For Python
 import httplib
+
+import urllib2
+import socket
+import ssl
+
+import socket
 import json
 import ConfigParser
 
 
-def file_exists(file):
-    """Check if a file exists."""
-    try:
-        open(file)
-    except IOError:
-        return False
-    else:
-        return True
+class HTTPSConnectionV3(httplib.HTTPSConnection):
+    def __init__(self, *args, **kwargs):
+        httplib.HTTPSConnection.__init__(self, *args, **kwargs)
+
+    def connect(self):
+        sock = socket.create_connection((self.host, self.port), self.timeout)
+        if self._tunnel_host:
+            self.sock = sock
+            self._tunnel()
+        try:
+            self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file,
+                    ssl_version=ssl.PROTOCOL_SSLv3)
+        except ssl.SSLError, e:
+            print "Trying SSLv3"
+            self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file,
+                    ssl_version=ssl.PROTOCOL_SSLv23)
+
+
+class HTTPSHandlerV3(urllib2.HTTPSHandler):
+    def https_open(self, req):
+        return self.do_open(HTTPSConnectionV3, req)
+
+
+urllib2.install_opener(urllib2.build_opener(HTTPSHandlerV3()))
+
+
+class RequestWithMethod(urllib2.Request):
+    def __init__(self, method, url, data=None, headers={},
+            origin_req_host=None, unverifiable=False):
+        self._method = method
+        urllib2.Request.__init__(self, url, data, headers,
+                origin_req_host, unverifiable)
+
+    def get_method(self):
+        if self._method:
+            return self._method
+        else:
+            return urllib2.Request.get_method(self)
 
 
 class IllegalArgumentException(Exception):
@@ -93,13 +129,15 @@ class IronMQ:
             headers = dict(headers.items() + IronMQ.__headers.items())
         if self.protocol == "http":
             conn = httplib.HTTPConnection(self.host, self.port)
+            conn.request(method, url, body, headers)
+            resp = conn.getresponse()
         elif self.protocol == "https":
-            conn = httplib.HTTPSConnection(self.host, self.port)
-
-        conn.request(method, url, body, headers)
-        resp = conn.getresponse()
+            #conn = httplib.HTTPSConnection(self.host, self.port)
+            req = RequestWithMethod(method, url, body, headers)
+            resp = urllib2.urlopen(req)
         body = resp.read()
-        conn.close()
+        if self.protocol == "http":
+            conn.close()
         return body
 
     def __get(self, url, headers=None):
@@ -237,4 +275,21 @@ class IronMQ:
         url = "%sprojects/%s/queues/%s/messages?oauth=%s%s" % (self.url,
                 project_id, queue_name, self.token, n)
         body = self.__get(url)
+        return json.loads(body)
+
+
+    def clearQueue(self, queue_name, project_id=None):
+        """Executes an HTTP request to clear all contents of a queue.
+
+        Keyword arguments:
+        queue_name -- The name of the queue a messages are being cleared from.
+                      (Required)
+        project_id -- The ID of the project that contains the queue that is being cleared.
+                      Defaults to the project ID set when the wrapper was initialised.
+        """
+        if project_id is None:
+            project_id = self.project_id
+
+        url = "%sprojects/%s/queues/%s/clear?oauth=%s" % (self.url, project_id, queue_name, self.token)
+        body = self.__post(url)
         return json.loads(body)
