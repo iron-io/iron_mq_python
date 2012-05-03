@@ -67,8 +67,9 @@ class IronMQ:
         "User-Agent": "IronMQ Python v0.3",
     }
 
-    def __init__(self, token=None, project_id=None, host=DEFAULT_HOST, port=443,
-            version=1, protocol='https', config=None, app_engine=False):
+    def __init__(self, token=None, project_id=None, host=DEFAULT_HOST,
+            port=443, version=1, protocol='https', config=None,
+            app_engine=False):
         """Prepare a configured instance of the API wrapper and return it.
 
         Keyword arguments:
@@ -277,19 +278,20 @@ class IronMQ:
         body = self.__get(url)
         return json.loads(body)
 
-
     def clearQueue(self, queue_name, project_id=None):
         """Executes an HTTP request to clear all contents of a queue.
 
         Keyword arguments:
         queue_name -- The name of the queue a messages are being cleared from.
                       (Required)
-        project_id -- The ID of the project that contains the queue that is being cleared.
-                      Defaults to the project ID set when the wrapper was initialised.
+        project_id -- The ID of the project that contains the queue that is
+                      being cleared. Defaults to the project ID set when the
+                      wrapper was initialised.
         """
         if project_id is None:
             project_id = self.project_id
 
-        url = "%sprojects/%s/queues/%s/clear?oauth=%s" % (self.url, project_id, queue_name, self.token)
+        url = "%sprojects/%s/queues/%s/clear?oauth=%s" % (self.url, project_id,
+                queue_name, self.token)
         body = self.__post(url)
         return json.loads(body)
