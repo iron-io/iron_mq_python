@@ -246,7 +246,6 @@ class IronMQ:
         msgs = [{'body':msg} if isinstance(msg, basestring) else msg
                 for msg in messages]
         data = json.dumps({"messages": msgs})
-        dataLen = len(data)
 
         s = self.__post(url=url, payload=data)
 
