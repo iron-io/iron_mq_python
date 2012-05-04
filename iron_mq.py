@@ -250,7 +250,6 @@ class IronMQ:
             else:
                 msgs.append(message)
         data = json.dumps({"messages": msgs})
-        dataLen = len(data)
 
         s = self.__post(url=url, payload=data)
 
