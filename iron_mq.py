@@ -243,12 +243,7 @@ class IronMQ:
             project_id = self.project_id
         url = "%sprojects/%s/queues/%s/messages?oauth=%s" % (self.url,
                 project_id, queue_name, self.token)
-        msgs = []
-        for message in messages:
-            if isinstance(message, basestring):
-                msgs.append({"body": message})
-            else:
-                msgs.append(message)
+	msgs = [ {'body':message} if isinstance(message,basestring) else message for message in messages]
         data = json.dumps({"messages": msgs})
         dataLen = len(data)
 
