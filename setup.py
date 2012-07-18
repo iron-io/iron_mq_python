@@ -3,6 +3,7 @@ from setuptools import setup
 setup(
         name = "IronMQ",
         py_modules = ["iron_mq"],
+        install_requires = ["iron_core"],
         version = "0.3",
         description = "Client library for IronMQ, a message queue in the cloud",
         author = "Iron.io",
