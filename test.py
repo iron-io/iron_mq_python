@@ -7,25 +7,7 @@ import time
 class TestIronMQ(unittest.TestCase):
 
     def setUp(self):
-        config = ConfigParser.RawConfigParser()
-        config.read('config.ini')
-        self.token = config.get("IronMQ", "token")
-        self.project_id = config.get("IronMQ", "project_id")
-
-        self.mq = IronMQ(token=self.token, project_id=self.project_id)
-
-    def test_headers(self):
-        self.assertEqual(IronMQ._IronMQ__headers['Accept'], "application/json")
-        self.assertEqual(IronMQ._IronMQ__headers['User-Agent'],
-                "IronMQ Python v0.3")
-
-    def test_protocols(self):
-        mq = IronMQ(token=self.token, project_id=self.project_id)
-        if mq.protocol == "http":
-            self.assertEqual(mq.port, 80)
-        elif mq.protocol == "https":
-            self.assertEqual(mq.port, 443)
-        self.assertTrue(mq.protocol in ["http", "https"])
+        self.mq = IronMQ()
 
     def test_postMessage(self):
         queue = self.mq.getQueueDetails("test_queue")
