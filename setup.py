@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-        name = "IronMQ",
+        name = "iron-mq",
         py_modules = ["iron_mq"],
         install_requires = ["iron_core"],
         version = "0.3",
