@@ -1,6 +1,5 @@
 from iron_mq import *
 import unittest
-import ConfigParser
 import time
 
 
