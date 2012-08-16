@@ -21,12 +21,11 @@ class IronMQ:
         self.client = iron_core.IronClient(name=IronMQ.NAME,
                 version=IronMQ.VERSION, product="iron_mq", **kwargs)
 
-    def getQueues(self, page=None, project_id=None):
+
+    def getQueues(self, page=None):
         """Execute an HTTP request to get a list of queues and return it.
 
         Keyword arguments:
-        project_id -- The project ID to get queues from. Defaults to the
-                      project ID set when initialising the wrapper.
         page -- The 0-based page to get queues from. Defaults to None, which
                 omits the parameter.
         """
@@ -41,16 +40,13 @@ class IronMQ:
         result = self.client.get(url)
         return [queue["name"] for queue in result["body"]]
 
-    def getQueueDetails(self, queue_name, project_id=None):
+
+    def getQueueDetails(self, queue_name):
         """Execute an HTTP request to get details on a specific queue, and
         return it.
 
         Arguments:
         queue_name -- The name of the queue to get the details of.
-
-        Keyword arguments:
-        project_id -- The ID of the project the queue belongs to. Defaults to
-                      the project ID set when initialising the wrapper.
         """
         
         url = "queues/%s" % (queue_name,)
@@ -58,24 +54,21 @@ class IronMQ:
         queue = result["body"]
         return queue
 
-    def deleteMessage(self, queue_name, message_id, project_id=None):
+
+    def deleteMessage(self, queue_name, message_id):
         """Execute an HTTP request to delete a code package.
 
         Arguments:
         queue_name -- The name of the queue the message is in.
         message_id -- The ID of the message to be deleted.
-
-        Keyword arguments:
-        project_id -- The ID of the project that contains the queue that
-                      contains the message. Defaults to the project ID set
-                      when initialising the wrapper.
         """
 
         url = "queues/%s/messages/%s" % (queue_name, message_id)
         result = self.client.delete(url)
         return result["body"]
 
-    def postMessage(self, queue_name, messages=[], project_id=None):
+
+    def postMessage(self, queue_name, messages=[]):
         """Executes an HTTP request to create message on the queue.
 
         Arguments:
@@ -84,8 +77,6 @@ class IronMQ:
         Keyword arguments:
         messages -- An array of messages to be added to the queue.
                     Defaults to [].
-        project_id -- The ID of the project the queue is under. Defaults to
-                      the project ID set when the wrapper was initialised.
         """
         
         url = "queues/%s/messages" % ( queue_name,)
@@ -97,7 +88,8 @@ class IronMQ:
 
         return result['body']
 
-    def getMessage(self, queue_name, max=None, project_id=None):
+
+    def getMessage(self, queue_name, max=None):
         """Executes an HTTP request to get a message off of a queue.
 
         Arguments:
@@ -105,9 +97,6 @@ class IronMQ:
 
         Keyword arguments:
         max -- The maximum number of messages to pull. Defaults to 1.
-        project_id -- The ID of the project that contains the queue the message
-                      is to be pulled from. Defaults to the project ID set when
-                      the wrapper was initialised.
         """
         
         n = ""
@@ -117,18 +106,13 @@ class IronMQ:
         result = self.client.get(url)
         return result['body']
 
-    def clearQueue(self, queue_name, project_id=None):
+
+    def clearQueue(self, queue_name):
         """Executes an HTTP request to clear all contents of a queue.
 
         Arguments:
         queue_name -- The name of the queue a messages are being cleared from.
-
-        Keyword arguments:
-        project_id -- The ID of the project that contains the queue that is
-                      being cleared. Defaults to the project ID set when the
-                      wrapper was initialised.
         """
-
 
         url = "queues/%s/clear" % (queue_name,)
         result = self.client.post(url)
