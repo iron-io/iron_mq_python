@@ -9,34 +9,37 @@ class TestIronMQ(unittest.TestCase):
         self.mq = IronMQ()
 
     def test_postMessage(self):
-        queue = self.mq.getQueueDetails("test_queue")
-        self.mq.postMessage("test_queue", ["test message"])
-        queue2 = self.mq.getQueueDetails("test_queue")
-        self.assertEqual(queue["size"], (queue2["size"] - 1))
+        q = self.mq.queue("test_queue")
+        old_size = q.size()
+        q.post("test message")
+        self.assertEqual(old_size, q.size() - 1)
 
     def test_getMessage(self):
         msg = "%s" % time.time()
-        self.mq.postMessage("test_queue", [msg])
-        message = self.mq.getMessage("test_queue")
+        q = self.mq.queue("test_queue")
+        q.post(msg)
+        message = q.get()
         message = "%s" % message["messages"][0]["body"]
         self.assertEqual(msg, message)
 
     def test_deleteMessage(self):
-        queue = self.mq.getQueueDetails("test_queue")
-        msg = self.mq.postMessage("test_queue", ["test"])
-        queue2 = self.mq.getQueueDetails("test_queue")
-        self.mq.deleteMessage("test_queue", msg["ids"][0])
-        queue3 = self.mq.getQueueDetails("test_queue")
-        self.assertEqual(queue["size"], (queue2["size"] - 1))
-        self.assertEqual(queue["size"], queue3["size"])
+        q = self.mq.queue("test_queue")
+        size = q.size()
+
+        msg = q.post("test")
+        self.assertEqual(size, q.size() - 1)
+
+        q.delete(msg["ids"][0])
+        self.assertEqual(size, q.size())
 
     def test_clearQueue(self):
-        queue = self.mq.postMessage("test_queue", ["%s" % time.time()])
-        size = self.mq.getQueueDetails("test_queue")
-        self.assertTrue(size["size"] > 0)
-        self.mq.clearQueue("test_queue")
-        new_size = self.mq.getQueueDetails("test_queue")
-        self.assertEqual(new_size["size"], 0)
+        q = self.mq.queue("test_queue")
+
+        q.post("%s" % time.time())
+        self.assertTrue(q.size() > 0)
+
+        q.clear()
+        self.assertEqual(q.size(), 0)
 
 
 if __name__ == '__main__':

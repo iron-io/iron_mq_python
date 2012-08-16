@@ -22,7 +22,7 @@ class IronMQ:
                 version=IronMQ.VERSION, product="iron_mq", **kwargs)
 
 
-    def getQueues(self, page=None):
+    def queues(self, page=None):
         """Execute an HTTP request to get a list of queues and return it.
 
         Keyword arguments:
@@ -41,59 +41,100 @@ class IronMQ:
         return [queue["name"] for queue in result["body"]]
 
 
-    def getQueueDetails(self, queue_name):
-        """Execute an HTTP request to get details on a specific queue, and
-        return it.
+    def queue(self, queue_name):
+        """Returns Queue object.
 
         Arguments:
-        queue_name -- The name of the queue to get the details of.
+        queue_name -- The name of the queue.
+        """
+
+        return Queue(self, queue_name)
+
+
+class Queue:
+    client = None
+    name = None
+
+    def __init__(self, mq, name):
+        """Creates object for manipulating a queue.
+
+        Arguments:
+        mq -- An instance of IronMQ.
+        name -- The name of the queue.
+        """
+
+        self.client = mq.client
+        self.name = name
+
+
+    def info(self):
+        """Execute an HTTP request to get details on a queue, and
+        return it.
         """
         
-        url = "queues/%s" % (queue_name,)
+        url = "queues/%s" % (self.name,)
         result = self.client.get(url)
-        queue = result["body"]
-        return queue
+        return result["body"]
 
 
-    def deleteMessage(self, queue_name, message_id):
-        """Execute an HTTP request to delete a code package.
+    def size(self):
+        """Queue size"""
+        return self.info()['size']
+
+
+    def id(self):
+        """Queue ID"""
+        return self.info()['id']
+
+
+    def total_messages(self):
+        """Queue total messages count"""
+        return self.info()['total_messages']
+
+
+    def clear(self):
+        """Executes an HTTP request to clear all contents of a queue.
+        """
+
+        url = "queues/%s/clear" % (self.name,)
+        result = self.client.post(url)
+        return result['body']
+
+
+    def delete(self,  message_id):
+        """Execute an HTTP request to delete a message from queue.
 
         Arguments:
-        queue_name -- The name of the queue the message is in.
         message_id -- The ID of the message to be deleted.
         """
 
-        url = "queues/%s/messages/%s" % (queue_name, message_id)
+        url = "queues/%s/messages/%s" % (self.name, message_id)
         result = self.client.delete(url)
         return result["body"]
 
 
-    def postMessage(self, queue_name, messages=[]):
+    def post(self, *messages):
         """Executes an HTTP request to create message on the queue.
+        Creates queue if not existed.
 
         Arguments:
-        queue_name -- The name of the queue to add the message to.
-
-        Keyword arguments:
         messages -- An array of messages to be added to the queue.
-                    Defaults to [].
         """
         
-        url = "queues/%s/messages" % ( queue_name,)
+        url = "queues/%s/messages" % (self.name,)
+
         msgs = [{'body':msg} if isinstance(msg, basestring) else msg
                 for msg in messages]
         data = json.dumps({"messages": msgs})
 
-        result = self.client.post(url=url, body=data, headers= {"Content-Type": "application/json"})
+        result = self.client.post(url=url, body=data,
+                                  headers={"Content-Type":"application/json"})
 
         return result['body']
 
 
-    def getMessage(self, queue_name, max=None):
+    def get(self, max=None):
         """Executes an HTTP request to get a message off of a queue.
-
-        Arguments:
-        queue_name -- The name of the queue a message is being fetched from.
 
         Keyword arguments:
         max -- The maximum number of messages to pull. Defaults to 1.
@@ -102,19 +143,7 @@ class IronMQ:
         n = ""
         if max is not None:
             n = "&n=%s" % max
-        url = "queues/%s/messages?%s" % ( queue_name, n)
+        url = "queues/%s/messages?%s" % (self.name, n)
         result = self.client.get(url)
         return result['body']
 
-
-    def clearQueue(self, queue_name):
-        """Executes an HTTP request to clear all contents of a queue.
-
-        Arguments:
-        queue_name -- The name of the queue a messages are being cleared from.
-        """
-
-        url = "queues/%s/clear" % (queue_name,)
-        result = self.client.post(url)
-        return result['body']
-    
