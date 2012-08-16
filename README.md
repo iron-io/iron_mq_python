@@ -40,7 +40,14 @@ ironmq = IronMQ(host="mq-aws-us-east-1.iron.io",
 
 ## The Basics
 
-At first, we get queue by name:
+### Listing queues
+
+```python
+ironmq.queues()
+```
+returns list of queues names
+
+we get queue by name:
 ```python
 queue = ironmq.queue("test_queue")
 ```
@@ -80,6 +87,25 @@ It will eventually go back onto the queue after a timeout if you don't delete it
 queue.delete(message_id)
 ```
 Delete a message from the queue when you're done with it.
+
+### ***Clear*** a queue:
+```python
+queue.clear()
+```
+
+### Get queue ***size***, ***id***, ***total_messages*** and whole ***info***
+```python
+queue.info()
+ # {u'id': u'502d03d3211a8f5e7742d224',
+ # u'name': u'queue12',
+ # u'reserved': 0,
+ # u'size': 15,
+ # u'total_messages': 17}
+queue.size() # 15
+queue.name
+queue.total_messages() # 17
+queue.id() # u'502d03d3211a8f5e7742d224'
+```
 
 # Full Documentation
 
