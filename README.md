@@ -62,10 +62,10 @@ Message can be described by dict:
 
 ```python
 message = {
-    "body" => "Test Message",
-    "timeout" => 120, # Timeout, in seconds. After timeout, item will be placed back on queue. Defaults to 60.
-    "delay" => 5, # The item will not be available on the queue until this many seconds have passed. Defaults to 0.
-    "expires_in" => 2*24*3600 # How long, in seconds, to keep the item on the queue before it is deleted.
+    "body" : "Test Message",
+    "timeout" : 120, # Timeout, in seconds. After timeout, item will be placed back on queue. Defaults to 60.
+    "delay" : 5, # The item will not be available on the queue until this many seconds have passed. Defaults to 0.
+    "expires_in" : 2*24*3600 # How long, in seconds, to keep the item on the queue before it is deleted.
 }
 queue.post(message)
 ```
