@@ -45,8 +45,10 @@ class IronMQ:
         """Execute an HTTP request to get details on a specific queue, and
         return it.
 
+        Arguments:
+        queue_name -- The name of the queue to get the details of.
+
         Keyword arguments:
-        queue_name -- The name of the queue to get the details of. (Required)
         project_id -- The ID of the project the queue belongs to. Defaults to
                       the project ID set when initialising the wrapper.
         """
@@ -59,9 +61,11 @@ class IronMQ:
     def deleteMessage(self, queue_name, message_id, project_id=None):
         """Execute an HTTP request to delete a code package.
 
+        Arguments:
+        queue_name -- The name of the queue the message is in.
+        message_id -- The ID of the message to be deleted.
+
         Keyword arguments:
-        queue_name -- The name of the queue the message is in. (Required)
-        message_id -- The ID of the message to be deleted. (Required)
         project_id -- The ID of the project that contains the queue that
                       contains the message. Defaults to the project ID set
                       when initialising the wrapper.
@@ -74,8 +78,10 @@ class IronMQ:
     def postMessage(self, queue_name, messages=[], project_id=None):
         """Executes an HTTP request to create message on the queue.
 
+        Arguments:
+        queue_name -- The name of the queue to add the message to.
+
         Keyword arguments:
-        queue_name -- The name of the queue to add the message to. (Required)
         messages -- An array of messages to be added to the queue.
                     Defaults to [].
         project_id -- The ID of the project the queue is under. Defaults to
@@ -94,9 +100,10 @@ class IronMQ:
     def getMessage(self, queue_name, max=None, project_id=None):
         """Executes an HTTP request to get a message off of a queue.
 
-        Keyword arguments:
+        Arguments:
         queue_name -- The name of the queue a message is being fetched from.
-                      (Required)
+
+        Keyword arguments:
         max -- The maximum number of messages to pull. Defaults to 1.
         project_id -- The ID of the project that contains the queue the message
                       is to be pulled from. Defaults to the project ID set when
@@ -113,9 +120,10 @@ class IronMQ:
     def clearQueue(self, queue_name, project_id=None):
         """Executes an HTTP request to clear all contents of a queue.
 
-        Keyword arguments:
+        Arguments:
         queue_name -- The name of the queue a messages are being cleared from.
-                      (Required)
+
+        Keyword arguments:
         project_id -- The ID of the project that contains the queue that is
                       being cleared. Defaults to the project ID set when the
                       wrapper was initialised.
