@@ -10,57 +10,102 @@ To start using iron_mq_python, you need to sign up and get an OAuth2 token.
 2. Get an OAuth2 Token at http://hud.iron.io/tokens
 
 ## Install iron_mq_python
-Just copy `iron_mq.py` and include it in your script:
+
+```sh
+pip install iron_mq_python
+```
+
+or just copy `iron_mq.py` and include it in your script:
 
 ```python
 from iron_mq import *
 ```
+
 ## Configure
-Two ways to configure IronWorker:
-
-* Passing named arguments:
 
 ```python
-ironmq = IronMQ(token="xxxxx", project_id="xxxxx")
+ironmq = IronMQ()
 ```
-* Passing an ini file name that stores your configuration options. Rename sample_config.ini to config.ini and include your Iron.io credentials (`token` and `project_id`):
 
-```python
-ironmq = IronMQ(config='config.ini')
+will try reasonable defaults, accepting following optionally:
+
+```
+ironmq = IronMQ(host="mq-aws-us-east-1.iron.io",
+                project_id="500f7b....b0f302e9",
+                token="Et1En7.....0LuW39Q",
+                protocol="https", port=443,
+                api_version=1,
+                config_file=None)
 ```
 
 ## The Basics
 
-### **Push** a message on the queue:
+### Listing queues
 
 ```python
-ironmq.postMessage(queue_name="test_queue", messages=["Hello world"])
+ironmq.queues()
+```
+returns list of queues names
+
+we get queue by name:
+```python
+queue = ironmq.queue("test_queue")
 ```
 
-More complex example:
+### **Push** a message(s) on the queue:
+
+```python
+queue.post("Hello world")
+```
+
+Message can be described by dict:
 
 ```python
 message = {
-    "body" => "Test Message",
-    "timeout" => 120, # Timeout, in seconds. After timeout, item will be placed back on queue. Defaults to 60.
-    'delay' => 5, # The item will not be available on the queue until this many seconds have passed. Defaults to 0.
-    'expires_in' => 2*24*3600 # How long, in seconds, to keep the item on the queue before it is deleted.
+    "body" : "Test Message",
+    "timeout" : 120, # Timeout, in seconds. After timeout, item will be placed back on queue. Defaults to 60.
+    "delay" : 5, # The item will not be available on the queue until this many seconds have passed. Defaults to 0.
+    "expires_in" : 2*24*3600 # How long, in seconds, to keep the item on the queue before it is deleted.
 }
-ironmq.postMessage(queue_name="test_queue", messages=[message])
+queue.post(message)
+```
+
+We can post several messages at once:
+```python
+queue.post("more", "and more", "and more")
+queue.post(*[str(i) for i in range(10)])
 ```
 
 ### **Pop** a message off the queue:
 ```python
-ironmq.getMessage(queue_name="test_queue")
+queue.get()
 ```
 When you pop/get a message from the queue, it will NOT be deleted.
 It will eventually go back onto the queue after a timeout if you don't delete it (default timeout is 60 seconds).
 ### **Delete** a message from the queue:
 ```python
-ironmq.deleteMessage(queue_name="test_queue", message_id=message_id)
+queue.delete(message_id)
 ```
 Delete a message from the queue when you're done with it.
 
+### ***Clear*** a queue:
+```python
+queue.clear()
+```
+
+### Get queue ***size***, ***id***, ***total_messages*** and whole ***info***
+```python
+queue.info()
+ # {u'id': u'502d03d3211a8f5e7742d224',
+ # u'name': u'queue12',
+ # u'reserved': 0,
+ # u'size': 15,
+ # u'total_messages': 17}
+queue.size() # 15
+queue.name
+queue.total_messages() # 17
+queue.id() # u'502d03d3211a8f5e7742d224'
+```
 
 # Full Documentation
 
