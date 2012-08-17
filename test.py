@@ -41,6 +41,25 @@ class TestIronMQ(unittest.TestCase):
         q.clear()
         self.assertEqual(q.size(), 0)
 
+    def test_deprecated(self):
+        self.assertEqual(self.mq.queues(), self.mq.getQueues())
+
+        name = 'test_queue'
+        q = self.mq.queue(name)
+
+        self.assertEqual('Cleared', self.mq.clearQueue(name)['msg'])
+
+        self.assertEqual(0, q.size())
+
+        info = self.mq.getQueueDetails(name)
+        self.assertEqual(q.info(), info)
+
+        msg_id = self.mq.postMessage(name, ['hello mq'])['ids'][0]
+
+        resp = self.mq.getMessage(name)
+        self.assertEqual(msg_id, resp['messages'][-1]['id'])
+
+        self.assertEqual('Deleted', self.mq.deleteMessage(name, msg_id)['msg'])
 
 if __name__ == '__main__':
     unittest.main()
