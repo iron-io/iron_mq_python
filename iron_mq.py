@@ -5,52 +5,6 @@ try:
 except:
     import simplejson as json
 
-class IronMQ:
-    NAME = "iron_mq_python"
-    VERSION = "0.3"
-    client = None
-    name = None
-
-    def __init__(self, name=None, **kwargs):
-        """Prepare a configured instance of the API wrapper and return it.
-
-        Keyword arguments are passed directly to iron_core_python; consult its
-        documentation for a full list and possible values."""
-        if name is not None:
-            self.name = name
-        self.client = iron_core.IronClient(name=IronMQ.NAME,
-                version=IronMQ.VERSION, product="iron_mq", **kwargs)
-
-
-    def queues(self, page=None):
-        """Execute an HTTP request to get a list of queues and return it.
-
-        Keyword arguments:
-        page -- The 0-based page to get queues from. Defaults to None, which
-                omits the parameter.
-        """
-        options = {}
-        if page is not None:
-            options['page'] = page
-        
-        query = urllib.urlencode(options)
-        url = "queues"
-        if query != "":
-            url = "%s?%s" % (url, query)
-        result = self.client.get(url)
-        return [queue["name"] for queue in result["body"]]
-
-
-    def queue(self, queue_name):
-        """Returns Queue object.
-
-        Arguments:
-        queue_name -- The name of the queue.
-        """
-
-        return Queue(self, queue_name)
-
-
 class Queue:
     client = None
     name = None
@@ -147,3 +101,69 @@ class Queue:
         result = self.client.get(url)
         return result['body']
 
+
+class IronMQ:
+    NAME = "iron_mq_python"
+    VERSION = "0.3"
+    client = None
+    name = None
+
+    def __init__(self, name=None, **kwargs):
+        """Prepare a configured instance of the API wrapper and return it.
+
+        Keyword arguments are passed directly to iron_core_python; consult its
+        documentation for a full list and possible values."""
+        if name is not None:
+            self.name = name
+        self.client = iron_core.IronClient(name=IronMQ.NAME,
+                version=IronMQ.VERSION, product="iron_mq", **kwargs)
+
+
+    def queues(self, page=None):
+        """Execute an HTTP request to get a list of queues and return it.
+
+        Keyword arguments:
+        page -- The 0-based page to get queues from. Defaults to None, which
+                omits the parameter.
+        """
+        options = {}
+        if page is not None:
+            options['page'] = page
+        
+        query = urllib.urlencode(options)
+        url = "queues"
+        if query != "":
+            url = "%s?%s" % (url, query)
+        result = self.client.get(url)
+        return [queue["name"] for queue in result["body"]]
+
+
+    def queue(self, queue_name):
+        """Returns Queue object.
+
+        Arguments:
+        queue_name -- The name of the queue.
+        """
+
+        return Queue(self, queue_name)
+
+
+    # DEPRECATED
+
+    def getQueues(self, page=None, project_id=None):
+        return self.queues(page=page)
+
+    def getQueueDetails(self, queue_name, project_id=None):
+        return self.queue(queue_name).info()
+
+    def deleteMessage(self, queue_name, message_id, project_id=None):
+        return self.queue(queue_name).delete(message_id)
+
+    def postMessage(self, queue_name, messages=[], project_id=None):
+        return self.queue(queue_name).post(*messages)
+
+    def getMessage(self, queue_name, max=None, project_id=None):
+        return self.queue(queue_name).get(max=max)
+
+    def clearQueue(self, queue_name, project_id=None):
+        return self.queue(queue_name).clear()
