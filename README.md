@@ -103,6 +103,15 @@ queue.post(*[str(i) for i in range(10)])
 ```python
 queue.get()
 ```
+This will pop a message off the queue and return its body (aka a string)
+In order to find out its attributes, use the following syntax:
+
+```python
+message = queue.get(verbose=True)
+```
+
+Now you have access to all the data associated with this message, i.e. message["timeout"]
+
 When you pop/get a message from the queue, it will NOT be deleted.
 It will eventually go back onto the queue after a timeout if you don't delete it (default timeout is 60 seconds).
 
