@@ -118,6 +118,14 @@ It will eventually go back onto the queue after a timeout if you don't delete it
 // Stating constants several times throughout the manual is unsafe because if it gets altered 
 // an editor will have to change one statement and forget about the other one.
 
+Note that all of the above will return None if the queue is empty.
+```python
+message = queue.get(verbose=False, period=0.5)
+```
+will activate persistance so that a function will not be completed until it actually recieves a message.
+An attempt to pop a message will be done every "period" seconds (2 times a second in the example)
+
+
 ### **Delete** a message from the queue:
 ```python
 queue.delete(message_id)
