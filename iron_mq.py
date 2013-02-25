@@ -1,6 +1,5 @@
 import iron_core
 import urllib
-import time
 try:
     import json
 except:
@@ -88,30 +87,23 @@ class Queue:
         return result['body']
 
 
-    def get(self, verbose=False, period=0, max=None):
+    def get(self, verbose=False, max=None):
         """Executes an HTTP request to get a message off of a queue.
 
         Keyword arguments:
-		wait -- If true and the queue is empty, the function waits until a message appears
-		verbose -- If true, the entire dict is returned instead of the message body.
+	verbose -- If true, the entire dict is returned instead of the message body.
         max -- The maximum number of messages to pull. Defaults to 1.
         """
-		result = None
-        while (result == None):
-		    n = ""
-		    if max is not None:
-		        n = "&n=%s" % max
-		    url = "queues/%s/messages?%s" % (self.name, n)
-		    result = self.client.get(url)
-
-			if period == 0:
-				break
-			sleep(period)
-			
-		if verbose is True:
-	        return result
-		else:
-	   		return result['body']
+        
+        n = ""
+        if max is not None:
+            n = "&n=%s" % max
+        url = "queues/%s/messages?%s" % (self.name, n)
+        result = self.client.get(url)
+	if verbose is True:
+            return result
+	else:
+	    return result['body']
 
 
 class IronMQ:
