@@ -124,7 +124,28 @@ queue.delete(message_id)
 ```
 Delete a message from the queue when you're done with it.
 
-### ***Clear*** a queue:
+### **Touch** a message:
+```python
+queue.touch(message_id)
+```
+Touching a popped message extends its timeout by the duration specified when the message was created, which is 60 seconds by default.
+After the timeout it will be placed back onto the queue.
+
+### **Release** a message:
+```python
+queue.release(message_id)
+```
+Release is opposite to Touch.
+Releasing a reserved message unreserves the message and puts it back on the queue as if the message had timed out.
+
+### **Peek** at a message:
+```python
+queue.peek()
+```
+Use this instead of Get if you wish the message to remain on the queue.
+
+
+### **Clear** a queue:
 ```python
 queue.clear()
 ```
@@ -142,8 +163,6 @@ queue.name
 queue.total_messages() # 17
 queue.id() # u'502d03d3211a8f5e7742d224' 
 ```
-
-// How can total_messages be greater than size?
 
 # Full Documentation
 
