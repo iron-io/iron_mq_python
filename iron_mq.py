@@ -87,10 +87,11 @@ class Queue:
         return result['body']
 
 
-    def get(self, max=None):
+    def get(self, verbose=False, max=None):
         """Executes an HTTP request to get a message off of a queue.
 
         Keyword arguments:
+	    verbose -- If true, the entire dict is returned instead of the message body.
         max -- The maximum number of messages to pull. Defaults to 1.
         """
         
@@ -99,7 +100,53 @@ class Queue:
             n = "&n=%s" % max
         url = "queues/%s/messages?%s" % (self.name, n)
         result = self.client.get(url)
-        return result['body']
+        if verbose is True:
+            return result
+        else:
+            return result['body']
+
+
+    def peek(self, verbose=False, max=None):
+        """Executes an HTTP request to peek at a message (get a message so that it remains on the queue).
+
+        Arguments:
+        verbose -- If true, the entire dict is returned instead of the message body.
+        max -- The maximum number of messages to pull. Defaults to 1.
+        """
+
+        n = ""
+        if max is not None:
+            n = "&n=%s" % max
+        url = "queues/%s/messages/peek?%s" % (self.name, n)
+        result = self.client.get(url)
+        if verbose is True:
+            return result
+        else:
+            return result['body']
+
+
+    def touch(self, message_id):
+        """Executes an HTTP request to touch a message (extend its timeout).
+
+        Arguments:
+        message_id -- The ID of the message to be touched.
+        """
+
+        url = "queues/%s/messages/%s/touch" % (self.name, message_id)
+        result = self.client.post(url)
+        return result["body"]
+
+
+    def release(self, message_id):
+        """Executes an HTTP request to release a message (push a previously popped message back on the queue).
+
+        Arguments:
+        message_id -- The ID of the message to be released.
+        """
+
+        url = "queues/%s/messages/%s/release" % (self.name, message_id)
+        result = self.client.post(url)
+        return result["body"]
 
 
 class IronMQ:

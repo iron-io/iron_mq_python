@@ -57,8 +57,10 @@ queue = ironmq.queue("test_queue")
 ```python
 queue.post("Hello world")
 ```
+// Maybe a little more verbose here?
 
-Message can be described by dict:
+This message will have the default properties.
+In order to customize them, Message can be described by dict:
 
 ```python
 message = {
@@ -70,25 +72,84 @@ message = {
 queue.post(message)
 ```
 
+//
+// For each of the above comments it would be nice to clarify when the countdown begins.
+// For instance, for "expires_in" it's unclear whether this countdown restarts when a message is popped and then pushed back on the queue
+// I suggest the following:
+
+
+```python
+message = {
+    "body" : "Test Message",
+    "timeout" : 120, # Timeout, in seconds. After timeout, item will be placed back on queue. Defaults to 60.
+    "delay" : 5, # The item will not be available on the queue until this many seconds have passed since message being pushed. Defaults to 0.
+    "expires_in" : 2*24*3600 # How long, in seconds, to keep the item on the queue before it is deleted. When a message is popped and then pushed back on the queue the countdown restarts.
+}
+queue.post(message)
+```
+
 We can post several messages at once:
 ```python
 queue.post("more", "and more", "and more")
 queue.post(*[str(i) for i in range(10)])
 ```
 
+// 
+// All the example messages are strings: a user might think that only strings can be passed to "push" and "post" functions.
+// If it's not so, adding an example with int/float would help avoid misunderstanding
+//
+
 ### **Pop** a message off the queue:
 ```python
 queue.get()
 ```
+This will pop a message off the queue and return its body (aka a string)
+In order to obtain its attributes, use the following syntax:
+
+```python
+message = queue.get(verbose=True)
+```
+
+Now you have access to all the data associated with this message, i.e. message["timeout"]
+
 When you pop/get a message from the queue, it will NOT be deleted.
 It will eventually go back onto the queue after a timeout if you don't delete it (default timeout is 60 seconds).
+
+// Stating constants several times throughout the manual is unsafe because if it gets altered 
+// an editor will have to change one statement and forget about the other one.
+
 ### **Delete** a message from the queue:
 ```python
 queue.delete(message_id)
 ```
 Delete a message from the queue when you're done with it.
 
-### ***Clear*** a queue:
+### **Touch** a message:
+```python
+queue.touch(message_id)
+```
+Touching a popped message extends its timeout by the duration specified when the message was created, which is 60 seconds by default.
+After the timeout it will be placed back onto the queue.
+
+### **Release** a message:
+```python
+queue.release(message_id)
+```
+Release is opposite to Touch.
+Releasing a reserved message unreserves the message and puts it back on the queue as if the message had timed out.
+
+### **Peek** at a message:
+```python
+message = queue.peek()
+```
+or
+```python
+message = queue.peek(verbose=True)
+```
+Use this instead of Get if you wish the message to remain on the queue.
+
+
+### **Clear** a queue:
 ```python
 queue.clear()
 ```
@@ -104,7 +165,7 @@ queue.info()
 queue.size() # 15
 queue.name
 queue.total_messages() # 17
-queue.id() # u'502d03d3211a8f5e7742d224'
+queue.id() # u'502d03d3211a8f5e7742d224' 
 ```
 
 # Full Documentation
