@@ -218,7 +218,7 @@ class IronMQ:
                 q.subscribers.append(Subscription(subscriber))
         return q
 
-    def unsubscribe(self, queue, subscribers):
+    def unsubscribe(self, queue, subscribers, ignore_empty=False):
         if isinstance(queue, Queue):
             if queue.name is None or queue.name == "":
                 raise ValueError("queue.name is required.")
