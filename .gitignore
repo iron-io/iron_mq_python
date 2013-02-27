@@ -8,4 +8,5 @@ config.ini
 dist
 build
 eggs
+.idea
 
