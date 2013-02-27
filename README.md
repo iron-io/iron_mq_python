@@ -104,7 +104,7 @@ queue.post(*[str(i) for i in range(10)])
 queue.get()
 ```
 This will pop a message off the queue and return its body (aka a string)
-In order to find out its attributes, use the following syntax:
+In order to obtain its attributes, use the following syntax:
 
 ```python
 message = queue.get(verbose=True)
@@ -140,7 +140,11 @@ Releasing a reserved message unreserves the message and puts it back on the queu
 
 ### **Peek** at a message:
 ```python
-queue.peek()
+message = queue.peek()
+```
+or
+```python
+message = queue.peek(verbose=True)
 ```
 Use this instead of Get if you wish the message to remain on the queue.
 
