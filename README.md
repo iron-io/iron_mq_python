@@ -263,8 +263,8 @@ IronMQ push queues allow you to setup a queue that will push to an endpoint, rat
 ```python
 queue.update(
     subscribers=[
-        {'url': 'http://endpoint.com/first'},
-        {'url': 'http://endpoint.com/second'}
+        'http://endpoint.com/first',
+        'http://endpoint.com/second'
     ],
     push_type='multicast',
     retries=5,
@@ -292,8 +292,8 @@ Subscribers can be any HTTP endpoint. `push_type` is one of:
 ```python
 ptype = 'multicast'
 subscribers = [
-    {'url': "http://rest-test.iron.io/code/200?store=key1"}
-    {'url': "http://rest-test.iron.io/code/200?store=key2"}
+    'http://rest-test.iron.io/code/200?store=key1',
+    'http://rest-test.iron.io/code/200?store=key2'
 ]
 
 queue.update(subscribers=subscribers, push_type=ptype)
@@ -302,18 +302,18 @@ queue.update(subscribers=subscribers, push_type=ptype)
 ### Add/Remove Subscribers on a Queue
 
 ```python
-queue.subscribe({url: 'http://nowhere.com'})
+queue.subscribe('http://nowhere.com')
 
 queue.subscribe([
-    {'url': 'http://first.endpoint.com/process'},
-    {'url': 'http://second.endpoint.com/process'}
+    'http://first.endpoint.com/process',
+    {'http://second.endpoint.com/process'
 ])
 
-queue.unsubscribe({url: "http://nowhere.com"})
+queue.unsubscribe('http://nowhere.com')
 
 queue.unsubscribe([
-    {'url': 'http://first.endpoint.com/process'},
-    {'url': 'http://second.endpoint.com/process'}
+    'http://first.endpoint.com/process',
+    'http://second.endpoint.com/process'
 ])
 ```
 
