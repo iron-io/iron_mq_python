@@ -157,14 +157,18 @@ queue.delete() # True
 ```python
 queue.post('something helpful', timeout=300)
 # or
-queue.post({'message_key1': 'value1', 'number': 300}, timeout=300)
+my_msg = ['my', 'first', 'message']
+
+# post as 1 message
+queue.post(my_msg, timeout=300)
 ```
 
 **Multiple messages:**
 ```python
-messages = [{'key1': 'first', 'key2': 300}, 'second', {'number': 'third'}]
+messages = ['my', 'three', 'messages']
 
-queue.post(messages, expires_in=424242)
+# post as 3 messages
+queue.post(*messages, timeout=120, delay=42)
 ```
 
 **Optional parameters for messages:**
