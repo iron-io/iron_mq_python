@@ -70,11 +70,11 @@ class Message:
         endpoint = _to_path("queues/%s/messages/%s" % (self._queue.name, self.id))
         try:
             resp = self._client.delete(endpoint)
-        except requests.HTTPError:
-            if resp["status"] == 404:
+        except requests.HTTPError as e:
+            if e.response.status_code == request.codes.not_found:
                 return False
             else:
-                resp["resp"].raise_for_status()
+                e.response.raise_for_status()
         return True
 
     def touch(self):
@@ -165,6 +165,14 @@ class Queue:
         return self.push_type() is not None
 
     def is_new(self):
+        i = None
+        try:
+            self.id()
+        except requests.HTTPError as e:
+            if e.response.status_code == requests.codes.not_found:
+                return True
+            else:
+                e.response.raise_for_status()
         return self.id() is None
 
     def id(self):
@@ -248,7 +256,7 @@ class Queue:
         resp = self._client.post(_to_path("queues/%s/clear" % self.name))
         return True
 
-    def post(self, messages, ignore_empty=False):
+    def post(self, messages, timeout=None, delay=None, expires_in=None, ignore_empty=False):
         if self.name is None or self.name == "":
             raise ValueError("Cannot post to a queue until its name attribute is set.")
         if type(messages) is not list:
@@ -272,6 +280,12 @@ class Queue:
                 msg = {"body": message}
             else:
                 msg = message
+            if timeout is not None:
+                msg["timeout"] = timeout
+            if delay is not None:
+                msg["delay"] = delay
+            if expires_in is not None:
+                msg["expires_in"] = expires_in
             msgs.append(msg)
         data = json.dumps({"messages": msgs})
         headers = {"Content-Type": "application/json"}
@@ -364,11 +378,11 @@ class Queue:
         endpoint = _to_path("queues/%s" % self.name)
         try:
             resp = self._client.delete(endpoint)
-        except requests.HTTPError:
-            if resp["status"] == 404:
+        except requests.HTTPError as e:
+            if e.response.status_code == request.codes.not_found:
                 return False
             else:
-                resp["resp"].raise_for_status()
+                e.response.raise_for_status()
         return True
 
 class Subscription:
@@ -442,11 +456,11 @@ class Subscription:
         endpoint = _to_path("queues/%s/messages/%s/subscribers/%s" % (self._queue.name, self._message.id, self._id))
         try:
             resp = self._client.delete(endpoint)
-        except requests.HTTPError:
-            if resp["status"] == 404:
+        except requests.HTTPError as e:
+            if e.response.status_code == requests.codes.not_found:
                 return False
             else:
-                resp["resp"].raise_for_status()
+                e.response.raise_for_status()
         return True
 
 class IronMQ:
@@ -485,11 +499,18 @@ class IronMQ:
             if queue.name is None or queue.name == "":
                 raise ValueError("queue.name is required.")
             queue = queue.name
-        resp = self.client.get(_to_path("queues/%s" % queue))
-        raw_queue = resp["body"]
-        q = Queue(name=queue, values=raw_queue, client=self.client)
-        if "subscribers" in raw_queue:
-            q._subscribers = []
-            for subscriber in raw_queue["subscribers"]:
-                q._subscribers.append(Subscription(values=subscriber, queue=q, client=self.client))
+        q = None
+        try:
+            resp = self.client.get(_to_path("queues/%s" % queue))
+            raw_queue = resp["body"]
+            q = Queue(name=queue, values=raw_queue, client=self.client)
+            if "subscribers" in raw_queue:
+                q._subscribers = []
+                for subscriber in raw_queue["subscribers"]:
+                    q._subscribers.append(Subscription(values=subscriber, queue=q, client=self.client))
+        except requests.HTTPError as e:
+            if e.response.status_code == requests.codes.not_found:
+                q = Queue(queue, client=self.client)
+            else:
+                e.response.raise_for_status()
         return q
