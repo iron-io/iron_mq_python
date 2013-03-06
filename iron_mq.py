@@ -1,9 +1,9 @@
 import iron_core
-import urllib
 try:
     import json
 except:
     import simplejson as json
+import requests
 
 class Message:
     id = None
@@ -13,13 +13,11 @@ class Message:
     expires_in = None
     queue = None
 
-    __json_attrs = ["body"]
-    __duration_attrs = ["delay", "expires_in"]
     __ignore = []
     __aliases = {}
 
-    __queue = None
-    __client = None
+    _queue = None
+    _client = None
 
     def __set(self, attr, value):
         setattr(self, attr, value)
@@ -31,20 +29,20 @@ class Message:
             values['body'] = body
         if queue is not None:
             if isinstance(queue, Queue):
-                if queue.__client is not None:
-                    self.__client = queue.__client
-                self.__queue = queue
+                if queue._client is not None:
+                    self._client = queue._client
+                self._queue = queue
             elif isinstance(queue, basestring):
-                self.__queue = Queue(name=queue, client=client)
+                self._queue = Queue(name=queue, client=client)
             else:
-                # TODO: Throw an error
+                raise ValueError("Unsupported type passed for queue. Please use a Queue object or a string containing the queue's name.")
         else:
-            # TODO: Throw an error
+            raise ValueError("Cannot initialize a message without a queue.")
         if client is not None:
-            self.__client = client
+            self._client = client
         else:
-            # TODO: Throw an error
-        attrs = [x for x in vars(self.__class__).keys() if not x.startswith("__")]
+            raise ValueError("Cannot initialize a message without a client.")
+        attrs = [x for x in vars(self.__class__).keys() if not x.startswith("_")]
         for k in kwargs.keys():
             values[k] = kwargs[k]
 
@@ -55,62 +53,69 @@ class Message:
                 self.__set(self.__aliases[prop], values[prop])
 
     def delete(self):
-        if self.__queue is None self.__queue.name is None or self.__queue.name == "":
-            # TODO: Throw an error
+        if self._queue is None or self._queue.name is None or self._queue.name == "":
+            raise ValueError("Cannot delete a message until its queue's name is set.")
         if self.id is None:
-            # TODO: Throw an error
-        endpoint = "queues/%s/messages/%s" % (self.__queue.name, self.id)
-        resp = self.__client.delete(endpoint)
+            raise ValueError("Cannot delete a message if its ID is not set.")
+        endpoint = "queues/%s/messages/%s" % (self._queue.name, self.id)
+        try:
+            resp = self._client.delete(endpoint)
+        except requests.HTTPError:
+            if resp["status"] == 404:
+                return False
+            else:
+                resp["resp"].raise_for_status()
         return True
 
     def touch(self):
-        if self.__queue is None or self.__queue.name is None or self.__queue.name == "":
-            # TODO: Throw an error
+        if self._queue is None or self._queue.name is None or self._queue.name == "":
+            raise ValueError("Cannot touch a message if its queue's name is not set.")
         if self.id is None:
-            # TODO: Throw an error
+            raise ValueError("Cannot touch a message if its ID is not set.")
         data = json.dumps({})
         headers = {"Content-Type": "application/json"}
-        resp = self.__client.post("queues/%s/messages/%s/touch" % (self.__queue.name, self.id), body=data, headers=headers)
+        resp = self._client.post("queues/%s/messages/%s/touch" % (self._queue.name, self.id), body=data, headers=headers)
         return True
 
-    def release(self, no_delay=True):
-        if self.__queue is None or self.__queue.name is None or self.__queue.name == "":
-            # TODO: Throw an error
+    def release(self, delay=None):
+        if self._queue is None or self._queue.name is None or self._queue.name == "":
+            raise ValueError("Cannot release a message if its queue's name is not set.")
         if self.id is None:
-            # TODO: Throw an error
+            raise ValueError("Cannot release a message if its ID is not set.")
         data = {}
-        if not no_delay and self.delay is not None:
+        if delay is not None:
             data["delay"] = self.delay
         data = json.dumps(data)
         headers = {"Content-Type": "application/json"}
-        resp = self.__client.post("queues/%s/messages/%s/release" % (self.__queue.name, self.id), body=data, headers=headers)
+        resp = self._client.post("queues/%s/messages/%s/release" % (self._queue.name, self.id), body=data, headers=headers)
         return True
 
     def push_status(self):
-        if self.__queue is None or self.__queue.name is None or self.__queue.name == "":
-            # TODO: Throw an error
+        if self._queue is None or self._queue.name is None or self._queue.name == "":
+            raise ValueError("Cannot get the push status of a message if its queue's name is not set.")
         if self.id is None:
-            # TODO: Throw an error
-        resp = self.__client.get("queues/%s/messages/%s/subscribers" % (self.__queue.name, self.id))
+            raise ValueError("Cannot get the push status of a message if its ID is not set.")
+        resp = self._client.get("queues/%s/messages/%s/subscribers" % (self._queue.name, self.id))
         subscriptions = []
         for subscriber in resp["body"]["subscribers"]:
-            subscriptions.append(Subscription(values=subscriber, queue=self.__queue, message=self, client=self.__client))
+            subscriptions.append(Subscription(values=subscriber, queue=self._queue, message=self, client=self._client))
         return subscriptions
 
 class Queue:
-    id = None
     name = None
-    size = None
-    total_messages = None
-    project_id = None
-    retries = None
-    push_type = None
-    retries_delay = None
-    subscribers = None
-    __client = None
+    _id = None
+    _size = None
+    _total_messages = None
+    _project_id = None
+    _retries = None
+    _push_type = None
+    _retries_delay = None
+    _subscribers = None
+    
+    _client = None
 
-    __ignore = []
-    __aliases = {}
+    __ignore = ['id']
+    __aliases = {'id': '_id', 'size': '_size', 'total_messages': '_total_messages', 'project_id': '_project_id', 'retries': '_retries', 'push_type': '_push_type', 'retries_delay': '_retries_delay', 'subscribers': '_subscribers'}
 
     def __set(self, attr, value):
         setattr(self, attr, value)
@@ -121,9 +126,9 @@ class Queue:
         if name is not None:
             values['name'] = name
         if client is not None:
-            self.__client = client
+            self._client = client
         else:
-            # TODO: Throw an error
+            raise ValueError("Cannot instantiate a queue without a client.")
         attrs = [x for x in vars(self.__class__).keys() if not x.startswith("__")]
         for k in kwargs.keys():
             values[k] = kwargs[k]
@@ -132,11 +137,53 @@ class Queue:
             if prop in attrs and prop not in self.__ignore:
                 self.__set(prop, values[prop])
             elif prop in self.__aliases:
+                print "Setting %s to %s" % (self.__aliases[prop], values[prop])
                 self.__set(self.__aliases[prop], values[prop])
+
+    def info(self):
+        if self.name is None or self.name == "":
+            raise ValueError("Cannot get queue information until the queue's name attribute is set.")
+        resp = self._client.get("queues/%s" % self.name)
+        raw_queue = resp["body"]
+        q = Queue(name=self.name, values=raw_queue, client=self._client)
+        if "subscribers" in raw_queue:
+            q._subscribers = []
+            for subscriber in queue["subscribers"]:
+                q._subscribers.append(Subscription(values=subscriber, queue=q, client=self._client))
+        return q
+
+    def is_push_queue(self):
+        return self.push_type() is None
+
+    def is_new(self):
+        return self.id() is None
+
+    def id(self):
+        if self._id is None:
+            self._id = self.info()._id
+        return self._id
+
+    def size(self):
+        return self.info()._size
+
+    def total_messages(self):
+        return self.info()._total_messages
+
+    def retries(self):
+        return self.info()._retries
+
+    def push_type(self):
+        return self.info()._push_type
+
+    def retries_delay(self):
+        return self.info()._retries_delay
+
+    def subscribers(self):
+        return self.info()._subscribers
 
     def subscribe(self, subscribers, ignore_empty=False):
         if self.name is None or self.name == "":
-            # TODO: Throw an error
+            raise ValueError("Cannot subscribe to a queue until its name attribute is set.")
         subscriptions = []
         if type(subscribers) is not list:
             subscribers = [subscribers]
@@ -152,17 +199,17 @@ class Queue:
                 subscriptions.append(subscriber)
         data = json.dumps({"subscribers": subcriptions})
         headers = {"Content-Type": "application/json"}
-        resp = self.__client.post("queues/%s/subscribers" % self.name, body=data, headers=headers)
-        q = Queue(values=resp["body"], client=self.__client)
+        resp = self._client.post("queues/%s/subscribers" % self.name, body=data, headers=headers)
+        q = Queue(values=resp["body"], client=self._client)
         if "subscribers" in resp["body"]:
-            q.subscribers = []
+            q._subscribers = []
             for subscriber in resp["body"]["subscribers"]:
-                q.subscribers.append(Subscription(values=subscriber, client=self.__client, queue=q))
+                q._subscribers.append(Subscription(values=subscriber, client=self._client, queue=q))
         return q
 
     def unsubscribe(self, subscribers, ignore_empty=False):
         if self.name is None or self.name == "":
-            # TODO: Throw an error
+            raise ValueError("Cannot unsubscribe from a queue until its name attribute is set.")
         subscriptions = []
         if type(subscribers) is not list:
             subscribers = [subscribers]
@@ -178,23 +225,23 @@ class Queue:
                 subscriptions.append(subscriber)
         data = json.dumps({"subscribers": subcriptions})
         headers = {"Content-Type": "application/json"}
-        resp = self.__client.delete("queues/%s/subscribers" % self.name, body=data, headers=headers)
+        resp = self._client.delete("queues/%s/subscribers" % self.name, body=data, headers=headers)
         q = Queue(resp["body"])
         if "subscribers" in resp["body"]:
-            q.subscribers = []
+            q._subscribers = []
             for subscriber in resp["body"]["subscribers"]:
-                q.subscribers.append(Subscription(values=subscriber, client=self.__client, queue=q))
+                q._subscribers.append(Subscription(values=subscriber, client=self._client, queue=q))
         return q
 
     def clear(self):
         if self.name is None or self.name == "":
-            # TODO: Throw an error
-        resp = self.__client.post("queues/%s/clear" % self.name)
+            raise ValueError("Cannot clear a queue until its name attribute is set.")
+        resp = self._client.post("queues/%s/clear" % self.name)
         return True
 
     def post(self, messages, ignore_empty=False):
         if self.name is None or self.name == "":
-            # TODO: Throw an error
+            raise ValueError("Cannot post to a queue until its name attribute is set.")
         if type(messages) is not list:
             messages = [messages]
         msgs = []
@@ -219,17 +266,12 @@ class Queue:
             msgs.append(msg)
         data = json.dumps({"messages": msgs})
         headers = {"Content-Type": "application/json"}
-        resp = self.__client.post("queues/%s/messages" % self.name, body=data, headers=headers)
-        messages = []
-        for i, msg in msgs:
-            msg.id = resp["body"]["ids"][i]
-            message = Message(values=message, queue=self, client=self.__client)
-            messages.append(message)
-        return messages
+        resp = self._client.post("queues/%s/messages" % self.name, body=data, headers=headers)
+        return True
 
     def get(self, count=None, timeout=None):
         if self.name is None or self.name == "":
-            # TODO: Throw an error
+            raise ValueError("Cannot get messages from a queue until its name attribute is set.")
         querystring = ""
         if count is not None or timeout is not None:
             querystring += "?"
@@ -239,67 +281,77 @@ class Queue:
             querystring += "&"
         if timeout is not None:
             querystring += "timeout=%s", timeout
-        resp = self.__client.get("queues/%s/messages%s" % (self.name, querystring))
+        resp = self._client.get("queues/%s/messages%s" % (self.name, querystring))
         messages = []
         for msg in resp["body"]["messages"]:
-            message = Message(values=msg, client=self.__client, queue=self)
+            message = Message(values=msg, client=self._client, queue=self)
             messages.append(message)
+        if len(messages) == 1:
+            messages = messages[0]
         return messages
 
     def peek(self, count=None):
         if self.name is None or self.name == "":
-            # TODO: Throw an error
+            raise ValueError("Cannot peek at a queue's messages until its name attribute is set.")
         querystring = ""
         if count is not None:
             querystring += "?n=%s" % count
-        resp = self.__client.get("queues/%s/messages/peek%s" % (self.name, querystring))
+        resp = self._client.get("queues/%s/messages/peek%s" % (self.name, querystring))
         messages = []
         for msg in resp["body"]["messages"]:
-            message = Message(values=msg, queue=self, client=self.__client)
+            message = Message(values=msg, queue=self, client=self._client)
             messages.append(message)
+        if len(messages) == 1:
+            messages = messages[0]
         return messages
 
-    def update(self, **kwargs):
-        # TODO: update self with **kwargs
+    def update(self, push_type=None, subscribers=None, retries=None, retries_delay=None):
         queue_data = {}
-        if queue.subscribers is not None:
-            queue_data["subscribers"] = [subscriber.__serialize() for subscriber in queue.subscribers]
-        if queue.push_type is not None:
-            queue_data["push_type"] = queue.push_type
-        if queue.retries is not None:
-            queue_data["retries"] = queue.retries
-        if queue.retries_delay is not None:
-            queue_data["retries_delay"] = queue.retries_delay
+        if subscribers is not None:
+            queue_data["subscribers"] = [subscriber._serialize() for subscriber in subscribers]
+        if push_type is not None:
+            queue_data["push_type"] = push_type
+        if retries is not None:
+            queue_data["retries"] = retries
+        if retries_delay is not None:
+            queue_data["retries_delay"] = retries_delay
         data = json.dumps(queue_data)
         headers = {"Content-Type": "application/json"}
-        resp = self.__client.post("queues/%s" % self.name, body=data, headers=headers)
-        q = Queue(values=resp["body"], client=self.__client)
+        resp = self._client.post("queues/%s" % self.name, body=data, headers=headers)
+        q = Queue(values=resp["body"], client=self._client)
         if "subscribers" in resp["body"]:
-            q.subscribers = []
+            q._subscribers = []
             for subscriber in resp["body"]["subscribers"]:
-                q.subscribers.append(Subscription(values=subscriber, queue=q, client=self.__client))
+                q._subscribers.append(Subscription(values=subscriber, queue=q, client=self._client))
         return q
 
     def delete(self):
         if self.name is None or self.name == "":
-            # TODO: Throw an error
+            raise ValueError("Cannot delete a queue until its name attribute is set.")
         endpoint = "queues/%s" % self.name
-        resp = self.__client.delete(endpoint)
+        try:
+            resp = self._client.delete(endpoint)
+        except requests.HTTPError:
+            if resp["status"] == 404:
+                return False
+            else:
+                resp["resp"].raise_for_status()
         return True
 
 class Subscription:
-    id = None
     url = None
-    status = None
-    status_code = None
-    retries_remaining = None
-    retries_delay = None
-    __message = None
-    __queue = None
-    __client = None
+    _id = None
+    _status = None
+    _status_code = None
+    _retries_remaining = None
+    _retries_delay = None
+    
+    _message = None
+    _queue = None
+    _client = None
 
     __ignore = []
-    __aliases = {}
+    __aliases = {'status': '_status', 'status_code': '_status_code', 'retries_remaining': '_retries_remaining', 'retries_delay': '_retries_delay'}
     
     def __set(self, attr, value):
         setattr(self, attr, value)
@@ -311,32 +363,32 @@ class Subscription:
             values['url'] = url
         if message is not None:
             if isinstance(message, Message):
-                if message.__queue is not None:
-                    self.__queue = message.__queue
-                    if self.__queue.__client is not None:
-                        self.__client = queue.__client
-                if message.__client is not None:
-                    self.__client = message.__client
-                self.__message = message
+                if message._queue is not None:
+                    self._queue = message._queue
+                    if self._queue._client is not None:
+                        self._client = queue._client
+                if message._client is not None:
+                    self._client = message._client
+                self._message = message
             elif isinstance(message, basestring):
-                self.__message = Message(id=message, queue=queue, client=client)
+                self._message = Message(id=message, queue=queue, client=client)
             else:
-                # TODO: Throw a value error
+                raise ValueError("Unsupported type passed as a message. Please pass a Message object or a string containing the message's body.")
         if queue is not None:
             if isinstance(queue, Queue):
-                if queue.__client is not None:
-                    self.__client = queue.__client
-                self.__queue = queue
+                if queue._client is not None:
+                    self._client = queue._client
+                self._queue = queue
             elif isinstance(queue, basestring):
-                self.__queue = Queue(name=queue, client=client)
+                self._queue = Queue(name=queue, client=client)
             else:
-                # TODO: Throw a value error
+                raise ValueError("Unsupported type passed as a queue. Please pass a Queue object or a string containing the queue's name.")
         if client is not None:
-            self.__client = client
-        if queue is None:
-            # TODO: Throw an error
-        if client is None:
-            # TODO: Throw an error
+            self._client = client
+        if self._queue is None:
+            raise ValueError("Cannot initialize a subscription without a queue.")
+        if self._client is None:
+            raise ValueError("Cannot initialize a subscription without a client.")
         attrs = [x for x in vars(self.__class__).keys() if not x.startswith("__")]
         for k in kwargs.keys():
             values[k] = kwargs[k]
@@ -348,16 +400,20 @@ class Subscription:
                 self.__set(self.__aliases[prop], values[prop])
 
     def acknowledge(self):
-        if self.__queue is None or self.__queue.name is None or self.__queue.name == "":
-            # TODO: Throw an error
-        if self.__message is None or self.__message.id is None:
-            # TODO: Throw an error
-        if self.id is None:
-            # TODO: Throw an error
-        if self.__client is None:
-            # TODO: Throw an error
-        endpoint = "queues/%s/messages/%s/subscribers/%s" % (self.__queue.name, self.__message.id, self.id)
-        self.__client.delete(endpoint)
+        if self._queue is None or self._queue.name is None or self._queue.name == "":
+            raise ValueError("Cannot acknowledge a message from a subscription whose queue's name is not set.")
+        if self._message is None or self._message.id is None:
+            raise ValueError("Cannot acknowledge a message if its ID is not set.")
+        if self._id is None:
+            raise ValueError("Cannot acknowledge a message if the subscription's ID is not set.")
+        endpoint = "queues/%s/messages/%s/subscribers/%s" % (self._queue.name, self._message.id, self._id)
+        try:
+            resp = self._client.delete(endpoint)
+        except requests.HTTPError:
+            if resp["status"] == 404:
+                return False
+            else:
+                resp["resp"].raise_for_status()
         return True
 
 class IronMQ:
@@ -389,9 +445,9 @@ class IronMQ:
         for queue in raw_queues:
             q = Queue(values=queue, client=self.client)
             if "subscribers" in queue:
-                q.subscribers = []
+                q._subscribers = []
                 for subscriber in queue["subscribers"]:
-                    q.subscribers.append(Subscription(values=subscriber, queue=q, client=self.client))
+                    q._subscribers.append(Subscription(values=subscriber, queue=q, client=self.client))
             queues.append(q)
         return queues
 
@@ -404,7 +460,7 @@ class IronMQ:
         raw_queue = resp["body"]
         q = Queue(name=queue, values=raw_queue, client=self.client)
         if "subscribers" in raw_queue:
-            q.subscribers = []
+            q._subscribers = []
             for subscriber in queue["subscribers"]:
-                q.subscribers.append(Subscription(values=subscriber, queue=q, client=self.client))
+                q._subscribers.append(Subscription(values=subscriber, queue=q, client=self.client))
         return q
