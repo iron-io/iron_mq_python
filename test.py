@@ -16,16 +16,16 @@ class TestIronMQ(unittest.TestCase):
         self.assertTrue(len(qlist) > 0, 'queue list is empty')
 
         test_queue_present = False
-        for name in qlist:
-            if name == 'test_queue': test_queue_present = True
+        qnames = [q.name for q in qlist]
+        if 'test_queue' in qnames: test_queue_present = True
 
-        self.assertTrue(test_queue_present, 'queue named "test_queue" is not present in list')
-
-        self.delete_queue(queue)
+        self.assertTrue(test_queue_present, 'queue named "test_queue" is not present in list: %s' % qlist)
 
 
     def test_postMessage(self):
         queue = self.mq.queue('test_queue')
+        self.delete_queue(queue)
+
         queue.post('test message')
         size = queue.size()
 
@@ -34,22 +34,23 @@ class TestIronMQ(unittest.TestCase):
 
 
     def test_getMessage(self):
-        msg = "%s" % time.time()
         queue = self.mq.queue('test_queue')
+        self.delete_queue(queue)
+
         queue.post('test message')
 
-        queue.post(msg)
-
         message = queue.get()
-        self.assertEqual(msg, message.body)
+        self.assertEqual('test message', message.body)
 
 
     def test_deleteMessage(self):
         queue = self.mq.queue('test_queue')
+        self.delete_queue(queue)
+
         queue.post('test message')
         size = queue.size()
 
-        q.post('test message')
+        queue.post('test message')
         self.assertEqual(size, queue.size() - 1)
 
         msg = queue.get()
@@ -59,12 +60,14 @@ class TestIronMQ(unittest.TestCase):
 
     def test_clearQueue(self):
         queue = self.mq.queue('test_queue')
+        self.delete_queue(queue)
+
         queue.post('test message')
 
         queue.post("%s" % time.time())
         self.assertTrue(queue.size() > 0)
 
-        q.clear()
+        queue.clear()
         self.assertEqual(queue.size(), 0)
 
 
@@ -87,7 +90,7 @@ class TestIronMQ(unittest.TestCase):
 
         time.sleep(10)
         msg2 = queue.get()
-        self.expectIsNotNone(msg2, 'expects message is available after timeout')
+        self.assertIsNotNone(msg2, 'expects message is available after timeout')
         self.assertEqual(msg1.id, msg2.id, 'expected msg ID is "%s", but got "%s"' % (msg1.id, msg2.id))
 
 
@@ -171,7 +174,7 @@ class TestIronMQ(unittest.TestCase):
         msgs = queue.peek(count=3)
         self.assertIsInstance(msgs, list, 'list of messages expected')
         self.assertEqual(3, len(msgs), 'expected list with 3 messages, but got %s' % len(msgs))
-        self.assertEqual(msg.id, msg[2].id, "released message must be at the end of the queue")
+        self.assertEqual(msg.id, msgs[2].id, "released message must be at the end of the queue")
 
         msg = queue.get()
         self.assertIsNotNone(msg)
@@ -192,7 +195,7 @@ class TestIronMQ(unittest.TestCase):
         msgs = queue.peek(count=3)
         self.assertIsInstance(msgs, list, 'list of messages expected')
         self.assertEqual(3, len(msgs), 'expected list with 3 messages, but got %s' % len(msgs))
-        self.assertEqual(msg.id, msg[2].id, "released message must be at the end of the queue")
+        self.assertEqual(msg.id, msgs[2].id, "released message must be at the end of the queue")
 
 
     def test_messageRelease(self):
