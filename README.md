@@ -17,11 +17,13 @@ or just copy `iron_mq.py` and include it in your script:
 from iron_mq import *
 ```
 
-2. Setup your Iron.io credentials: http://dev.iron.io/mq/reference/configuration/
+2\. [Setup your Iron.io credentials](http://dev.iron.io/mq/reference/configuration/)
 
 3\. Create an IronMQ client object:
 
 ```python
+ironmq = IronMQ()
+# or pass credentials
 ironmq = IronMQ(project_id='500f7b....b0f302e9', token='Et1En7.....0LuW39Q')
 ```
 
@@ -30,7 +32,7 @@ ironmq = IronMQ(project_id='500f7b....b0f302e9', token='Et1En7.....0LuW39Q')
 ### Get Queues List
 
 ```python
-queues = ironmq.queues()
+queues = ironmq.queues() # ['queue1 name', 'queue2 name', ...]
 ```
 
 returns list of `Queue` objects.
@@ -40,7 +42,10 @@ returns list of `Queue` objects.
 You can have as many queues as you want, each with their own unique set of messages.
 
 ```python
+queue = ironmq.get('my_queue')
+# aliases
 queue = ironmq.queue('my_queue')
+queue = ironmq.get_queue('my_queue')
 ```
 
 Now you can use it.
@@ -110,10 +115,15 @@ queues = ironmq.queues()
 queues = ironmq.queues(page=2, per_page=5)
 ```
 
+The method returns list of queues
+
 ### Get Queue by Name
 
 ```python
+queue = ironmq.get('my_queue')
+# aliases
 queue = ironmq.queue('my_queue')
+queue = ironmq.get_queue('my_queue')
 ```
 
 **Note:** if queue with desired name does not exist it returns fake queue.
@@ -127,7 +137,7 @@ Queue will be created automatically on post of first message or queue configurat
 info = queue.info() # {'id': '5127bf043264140e863e2283', 'name': 'my_queue', ...}
 
 q_id = queue.id() # "5127bf043264140e863e2283"
-# Does queue exists on server? Alias for `queue.id is None`
+# Does queue exists on server? Alias for `queue.id() is None`
 is_new = queue.is_new() # False
 
 size = queue.size() # 7
@@ -136,7 +146,7 @@ overall_messages = queue.total_messages() # 13
 subscribers = queue.subscribers() # [Subscription, ...]
 
 push_type = queue.push_type() # 'multicast'
-# Does queue Push Queue? Alias for `queue.push_type is not None`
+# Does queue Push Queue? Alias for `queue.push_type() is not None`
 is_push_queue = queue.is_push_queue() # True
 ```
 
