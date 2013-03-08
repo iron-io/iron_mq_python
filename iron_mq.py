@@ -168,17 +168,21 @@ class Queue(IronMQRouter):
             elif prop in self.__aliases:
                 self.__set(self.__aliases[prop], values[prop])
 
-    def info(self):
+    # `raw` is backward compatibility flag, True by default
+    def info(self, raw=True):
         if self.name is None or self.name == "":
             raise ValueError("Cannot get queue information until the queue's name attribute is set.")
+
         resp = self._client.get(super(Queue, self).to_path("queues/%s" % self.name))
-        raw_queue = resp["body"]
-        q = Queue(name=self.name, values=raw_queue, client=self._client)
-        if "subscribers" in raw_queue:
-            q._subscribers = []
-            for subscriber in raw_queue["subscribers"]:
-                q._subscribers.append(Subscription(values=subscriber, queue=q, client=self._client))
-        return q
+        if raw:
+            return resp['body']
+        else:
+            q = Queue(name=self.name, values=resp['body'], client=self._client)
+            if 'subscribers' in resp['body']:
+                q._subscribers = []
+                for subscriber in raw_queue['subscribers']:
+                    q._subscribers.append(Subscription(values=subscriber, queue=q, client=self._client))
+            return q
 
     def is_push_queue(self):
         return self.push_type() is not None
@@ -196,26 +200,26 @@ class Queue(IronMQRouter):
 
     def id(self):
         if self._id is None:
-            self._id = self.info()._id
+            self._id = self.info(raw=False)._id
         return self._id
 
     def size(self):
-        return self.info()._size
+        return self.info(raw=False)._size
 
     def total_messages(self):
-        return self.info()._total_messages
+        return self.info(raw=False)._total_messages
 
     def retries(self):
-        return self.info()._retries
+        return self.info(raw=False)._retries
 
     def push_type(self):
-        return self.info()._push_type
+        return self.info(raw=False)._push_type
 
     def retries_delay(self):
-        return self.info()._retries_delay
+        return self.info(raw=False)._retries_delay
 
     def subscribers(self):
-        return self.info()._subscribers
+        return self.info(raw=False)._subscribers
 
     def subscribe(self, subscribers, ignore_empty=False):
         if self.name is None or self.name == "":
@@ -379,10 +383,18 @@ class Queue(IronMQRouter):
                 q._subscribers.append(Subscription(values=subscriber, queue=q, client=self._client))
         return q
 
-    def delete(self):
+    def delete(self, *args):
         if self.name is None or self.name == "":
-            raise ValueError("Cannot delete a queue until its name attribute is set.")
-        endpoint = super(Queue, self).to_path("queues/%s" % self.name)
+            raise ValueError("Cannot delete until its name attribute is set.")
+
+        # Backward compatibility, bad idea, drop it ASAP
+        msg_id = None
+        endpoint = None
+        if len(args) == 1:
+            endpoint = super(Queue, self).to_path("queues/%s/messages/%s" % (self.name % args[0]))
+        else:
+            endpoint = super(Queue, self).to_path("queues/%s" % self.name)
+
         try:
             resp = self._client.delete(endpoint)
             self._id = None
