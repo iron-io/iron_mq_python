@@ -222,6 +222,50 @@ class TestIronMQ(unittest.TestCase):
         self.delete_queue(queue)
 
 
+    def test_backwardCompatibility(self):
+        queue = self.mq.queue('test_queue')
+        self.delete_queue(queue)
+
+        queue.post({'body': 'backward test #1'},
+                   {'body': 'backward test #2'},
+                   raw=True)
+        self.assertEqual(2, queue.size(), 'queue size must be 2 (backward compatibility)')
+
+        msgs = queue.get(max=2, instantiate=False)
+        self.assertIsInstance(msgs, dict, 'dict response expected (backward compatibility)')
+
+        for msg in msgs['messages']:
+            queue.delete(msg['id'])
+
+        self.delete_queue(queue)
+
+
+    def test_queueInfo(self):
+        queue = self.mq.queue('test_queue')
+        self.delete_queue(queue)
+
+        queue_info = queue.info()
+        self.assertIsInstance(queue_info, dict, 'queue info must be dict')
+        self.assertEqual('test_queue', queue_info['name'], 'queue name must be "test_queue"')
+        self.assertEqual(0, queue_info['size'], 'queue size must be 0')
+        self.assertEqual(0, queue_info['total_messages'], 'queue total messages must be 0')
+        self.assertIsNone(queue_info['id'], 'queue ID must be None')
+        self.assertIsNone(queue_info['push_type'], 'queue push type must be None')
+
+        messages = ['first', 'second', 'third']
+        queue.post(*messages)
+
+        queue_info = queue.info()
+        self.assertIsInstance(queue_info, dict, 'queue info must be dict')
+        self.assertEqual('test_queue', queue_info['name'], 'queue name must be "test_queue"')
+        self.assertEqual(3, queue_info['size'], 'queue size must be 0')
+        self.assertEqual(3, queue_info['total_messages'], 'queue total messages must be 0')
+        self.assertIsNotNone(queue_info['id'], 'queue ID must not be None')
+        self.assertIsNone(queue_info['push_type'], 'queue push type must be None')
+
+        self.delete_queue(queue)
+
+
     def delete_queue(self, queue):
         queue.delete()
         self.assertTrue(queue.is_new(), 'queue is not deleted')
