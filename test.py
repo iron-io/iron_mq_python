@@ -12,14 +12,18 @@ class TestIronMQ(unittest.TestCase):
         queue = self.mq.queue('test_queue')
         queue.post('test message')
 
-        qlist = self.mq.queues()
+        qlist = self.mq.queues(instantiate=True)
         self.assertTrue(len(qlist) > 0, 'queue list is empty')
 
         test_queue_present = False
         qnames = [q.name for q in qlist]
-        if 'test_queue' in qnames: test_queue_present = True
+        self.assertTrue('test_queue' in qnames, 'queue named "test_queue" is not present in list: %s' % qnames)
 
-        self.assertTrue(test_queue_present, 'queue named "test_queue" is not present in list: %s' % qlist)
+        self.delete_queue(queue)
+        queue.post('test message')
+
+        qlist = self.mq.queues(instantiate=False)
+        self.assertTrue('test_queue' in qlist, 'queue named "test_queue" is not present in list: %s' % qlist)
 
 
     def test_postMessage(self):

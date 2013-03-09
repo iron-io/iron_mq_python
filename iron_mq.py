@@ -529,13 +529,17 @@ class IronMQ(IronMQRouter):
         self.client = iron_core.IronClient(name=IronMQ.NAME,
                 version=IronMQ.VERSION, product="iron_mq", **kwargs)
 
-    def queues(self, per_page=None, page=None):
+    def queues(self, per_page=None, page=None, instantiate=False):
         resp = self.client.get(super(IronMQ, self).to_path("queues", page=page, per_page=per_page))
         raw_queues = resp['body']
 
         queues = []
-        for queue in raw_queues:
-            queues.append(Queue(values=queue, client=self.client))
+        if instantiate:
+            for queue in raw_queues:
+                queues.append(Queue(values=queue, client=self.client))
+        else:
+            for queue in resp['body']:
+                queues.append(queue['name'])
 
         return queues
 
