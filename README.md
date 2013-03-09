@@ -27,6 +27,7 @@ ironmq = IronMQ()
 ironmq = IronMQ(project_id='500f7b....b0f302e9', token='Et1En7.....0LuW39Q')
 ```
 
+
 # The Basics
 
 ### Get Queues List
@@ -90,6 +91,36 @@ msg.delete()
 Be sure to delete a message from the queue when you're done with it.
 
 
+# Important Notes on Backward Compatibility
+
+New client library (version 1.0.0) includes partial backward compatibility with previous version (0.3).
+Please, read this notes before you will update your client library.
+
+* `queue.get()` instantiates `Message` object instead returning a raw response body.
+To have the same behavior as in version 0.3 set `instantiate` keyword argument to `False`.
+
+* `queue.post()` accepts list of messages' bodies by default in new version.
+To pass prepared `dict` for messages set `raw` keyword argument to `True`.
+Example:
+```python
+message = {'body': 'my body', 'timeout': 300, 'delay': 120}
+queue.post(message, raw=True)
+```
+
+* `queue.delete(message_id)` is deprecated.
+Because `queue.delete()` method is used for queue deletion (not supported in version 0.3).
+
+* List of unsupported methods (all of them were deprecated in version 0.3):
+  * `getQueues()`
+  * `getQueueDetails()`
+  * `deleteMessage()`
+  * `postMessage()`
+  * `getMessage()`
+  * `clearQueue()`
+
+We are highly recomend to use new syntax explained hereinafter.
+
+
 # IronMQ
 
 `IronMQ` class uses `IronClient` from [iron_core_python](https://github.com/iron-io/iron_core_python) and provides easy access to the queues.
@@ -102,17 +133,26 @@ ironmq = IronMQ(project_id='PROJECT_ID', token='TOKEN')
 
 ### List Queues
 
+Get queues' names list:
+
 ```python
 queues = ironmq.queues()
+```
+
+Get list of instantiated queues:
+
+```python
+queues = ironmq.queues(instantiate=True)
 ```
 
 **Optional parameters:**
 
 * `page`: The 0-based page to view. The default is 0.
 * `per_page`: The number of queues to return per page. The default is 30, the maximum is 100.
+* `instantiate`: Instantiate queues instead of returning names list. The default is `False`.
 
 ```python
-queues = ironmq.queues(page=2, per_page=5)
+queues = ironmq.queues(page=2, per_page=5, instantiate=True)
 ```
 
 The method returns list of queues
@@ -128,6 +168,7 @@ queue = ironmq.get_queue('my_queue')
 
 **Note:** if queue with desired name does not exist it returns fake queue.
 Queue will be created automatically on post of first message or queue configuration update.
+
 
 # Queues
 
@@ -154,11 +195,20 @@ is_push_queue = queue.is_push_queue() # True
 client library call IronMQ API each time you request for any parameter except `queue.name`.
 In this case you may prefer to use `queue.info()` to have `dict` with all available info parameters.
 
+If you want to have new `Queue` object as response set `instantiate` parameter to `True`:
+
+```python
+updated_queue = queue.info(instantiate=True)
+```
+
 ### Delete a Message Queue
 
 ```python
 queue.delete() # True
 ```
+
+Returns `True` if queue is deleted. If queue is not found the method returns `False`.
+Otherwise raises exception for HTTP status.
 
 ### Post Messages to a Queue
 
@@ -166,6 +216,7 @@ queue.delete() # True
 
 ```python
 queue.post('something helpful', timeout=300)
+
 # or
 my_msg = ['my', 'first', 'message']
 
@@ -174,6 +225,7 @@ queue.post(my_msg, timeout=300)
 ```
 
 **Multiple messages:**
+
 ```python
 messages = ['my', 'three', 'messages']
 
@@ -193,6 +245,7 @@ Default is 0 seconds. Maximum is 604,800 seconds (7 days).
 * `expires_in`: How long in seconds to keep the item on the queue before it is deleted.
 Default is 604,800 seconds (7 days). Maximum is 2,592,000 seconds (30 days).
 
+
 ### Get Messages from a Queue
 
 ```python
@@ -211,8 +264,8 @@ You must delete the message from the queue to ensure it does not go back onto th
 If not set, value from POST is used. Default is 60 seconds. Minimum is 30 seconds.
 Maximum is 86,400 seconds (24 hours).
 
-When `count` parameter is specified and greater than 1 method returns `Array` of `Queue`s.
-Otherwise, `Queue` object would be returned.
+When `count` parameter is specified and greater than 1 method returns `list` of `Queue`s.
+Otherwise, `Queue` instance will be returned.
 
 ### Touch a Message on a Queue
 
@@ -253,6 +306,7 @@ Peeking at a queue returns the next messages on the queue, but it does not reser
 
 ```python
 message = queue.peek() # Message
+
 # or multiple messages
 messages = queue.peek(count=13) # [Message, ...]
 ```
@@ -263,9 +317,10 @@ messages = queue.peek(count=13) # [Message, ...]
 
 ### Clear a Queue
 
-```ruby
+```python
 queue.clear() # True
 ```
+
 
 # Push Queues
 
@@ -341,13 +396,14 @@ subscriptions = queue.get(message.id).push_status()
 
 Returns an array of subscribers with status.
 
-### Delete Message Push Status
+### Acknowledge / Delete Message Push Status
 
 ```python
 subscriptions = queue.get(msg.id).push_status()
 
 for subscription in subscriptions:
-    subscription.delete()
+    subscription.acknowledge()
+    # subscription.delete() # is alias for `acknowledge()`
 ```
 
 

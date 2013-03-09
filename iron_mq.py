@@ -66,9 +66,10 @@ class Message(IronMQRouter):
             self._client = client
         if self._client is None: raise ValueError("Cannot initialize a message without a client.")
 
-        attrs = [x for x in vars(self.__class__).keys() if not (x.startswith("_") or hasattr(vars(self.__class__)[x], '__call__'))]
         if values is None: values = {}
         if body is not None: values['body'] = body
+
+        attrs = [x for x in vars(self.__class__).keys() if not (x.startswith("_") or hasattr(vars(self.__class__)[x], '__call__'))]
         for k in kwargs.keys():
             values[k] = kwargs[k]
 
@@ -77,6 +78,7 @@ class Message(IronMQRouter):
                 self.__set(prop, values[prop])
             elif prop in self.__aliases:
                 self.__set(self.__aliases[prop], values[prop])
+
 
     def delete(self):
         if self._queue is None or self._queue.name is None or self._queue.name == "":
@@ -91,7 +93,9 @@ class Message(IronMQRouter):
                 return False
             else:
                 e.response.raise_for_status()
+
         return True
+
 
     def touch(self):
         if self._queue is None or self._queue.name is None or self._queue.name == "":
@@ -106,6 +110,7 @@ class Message(IronMQRouter):
         resp = self._client.post(path, body=data, headers=headers)
 
         return True
+
 
     def release(self, delay=None):
         if self._queue is None or self._queue.name is None or self._queue.name == "":
@@ -123,6 +128,7 @@ class Message(IronMQRouter):
 
         return True
 
+
     def push_status(self):
         if self._queue is None or self._queue.name is None or self._queue.name == "":
             raise ValueError("Cannot get the push status of a message if its queue's name is not set.")
@@ -134,7 +140,9 @@ class Message(IronMQRouter):
         subscriptions = []
         for subscriber in resp["body"]["subscribers"]:
             subscriptions.append(Subscription(values=subscriber, queue=self._queue, message=self, client=self._client))
+
         return subscriptions
+
 
     def raw(self):
         return super(Message, self).parse_response({'id': self.id,
@@ -164,14 +172,14 @@ class Queue(IronMQRouter):
         setattr(self, attr, value)
 
     def __init__(self, name=None, values={}, client=None, **kwargs):
-        if values is None:
-            values = {}
-        if name is not None:
-            values['name'] = name
         if client is not None:
             self._client = client
         else:
             raise ValueError("Cannot instantiate a queue without a client.")
+
+        if values is None: values = {}
+        if name is not None: values['name'] = name
+
         attrs = [x for x in vars(self.__class__).keys() if not (x.startswith("_") or hasattr(vars(self.__class__)[x], '__call__'))]
         for k in kwargs.keys():
             values[k] = kwargs[k]
@@ -185,7 +193,8 @@ class Queue(IronMQRouter):
         if self._subscribers is not None and len(self._subscribers) > 0:
             self._update_subscribers(self._subscribers)
 
-    # `raw` is backward compatibility flag, True by default
+
+    # Set `instantiate` to True to return `Queue` instance instead raw `dict`
     def info(self, instantiate=False):
         if self.name is None or self.name == "":
             raise ValueError("Cannot get queue information until the queue's name attribute is set.")
@@ -207,6 +216,7 @@ class Queue(IronMQRouter):
                                                           'total_messages': 0, 'subscribers': []})
             else:
                 e.response.raise_for_status()
+
 
     def is_push_queue(self):
         return self.push_type() is not None
@@ -377,7 +387,8 @@ class Queue(IronMQRouter):
         # Backward compatibility, bad idea, drop it ASAP
         msg_id = None
         endpoint = None
-        if len(args) == 1:
+        is_msg_delete = len(args) == 1
+        if is_msg_delete:
             # delete message by ID
             endpoint = super(Queue, self).to_path('queues/%s/messages/%s' % (self.name, args[0]))
         else:
@@ -387,12 +398,16 @@ class Queue(IronMQRouter):
             resp = self._client.delete(endpoint)
             self._id = None
         except requests.HTTPError as e:
-            if e.response.status_code == requests.codes.not_found:
+            if e.response.status_code == requests.codes.not_found and not is_msg_delete:
                 return False
             else:
                 e.response.raise_for_status()
 
-        return super(Queue, self).parse_response(resp['body'])
+        # backward compatibility
+        if is_msg_delete:
+            return super(Queue, self).parse_response(resp['body'])
+
+        return True
 
 
     def _update_subscribers(self, subscribers):
@@ -424,7 +439,6 @@ class Queue(IronMQRouter):
 
     def _instantiate_messages(self, messages, count):
         res = []
-
         if messages is not None:
             for msg in messages:
                 res.append(Message(values=msg, queue=self, client=self._client))
@@ -514,6 +528,10 @@ class Subscription(IronMQRouter):
                 e.response.raise_for_status()
 
         return True
+
+
+    def delete(self):
+        return self.acknowledge()
 
 
 class IronMQ(IronMQRouter):
