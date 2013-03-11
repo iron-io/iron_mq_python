@@ -388,10 +388,27 @@ queue.unsubscribe([
 
 ### Get Message Push Status
 
-After pushing a message:
+When post a message to Push Queue set `instantiate` keyword argument to `True`.
+In this case `queue.post()` returns fake instance of `Message` (for single object post) or
+`list` of fake `Message`s (for multiple object post). This fake instances are only usable for Push Queues
+because stores only ID. It provides easy access to check push status.
+
+If you want to check push status later you can get fake message by ID. 
+To use the feature call `queue.get_push_message(message_id)`.
 
 ```python
-subscriptions = queue.get(message.id).push_status()
+# check right after post
+msg = queue.post('push me!', instantiate=True)
+subscriptions = msg.get_push_status()
+
+# delayed check
+response = queue.post('push me!')
+# store ID somewhere
+store_message_id_your_way(response['ids'][0])
+# get the message
+msg_id = get_message_id_your_way()
+message = queue.get_push_message(msg_id)
+subscriptions = message.get_push_status()
 ```
 
 Returns an array of subscribers with status.
@@ -399,7 +416,7 @@ Returns an array of subscribers with status.
 ### Acknowledge / Delete Message Push Status
 
 ```python
-subscriptions = queue.get(msg.id).push_status()
+subscriptions = queue.get_push_message(msg.id).push_status()
 
 for subscription in subscriptions:
     subscription.acknowledge()
