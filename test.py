@@ -255,6 +255,8 @@ class TestIronMQ(unittest.TestCase):
         self.assertEqual(0, queue_info['total_messages'], 'queue total messages must be 0')
         self.assertIsNone(queue_info['id'], 'queue ID must be None')
         self.assertIsNone(queue_info['push_type'], 'queue push type must be None')
+        self.assertTrue(queue.is_new(), 'queue must not exist on the service')
+        self.assertFalse(queue.is_push_queue(), 'queue must not be Push Queue')
 
         messages = ['first', 'second', 'third']
         queue.post(*messages)
@@ -266,6 +268,70 @@ class TestIronMQ(unittest.TestCase):
         self.assertEqual(3, queue_info['total_messages'], 'queue total messages must be 0')
         self.assertIsNotNone(queue_info['id'], 'queue ID must not be None')
         self.assertIsNone(queue_info['push_type'], 'queue push type must be None')
+
+
+    def test_pushQueues(self):
+        queue = self.mq.queue('test_queue')
+        self.delete_queue(queue)
+
+        queue_info = queue.info()
+        self.assertIsInstance(queue_info, dict, 'queue info must be dict')
+        self.assertEqual('test_queue', queue_info['name'], 'queue name must be "test_queue"')
+        self.assertEqual(0, queue_info['size'], 'queue size must be 0')
+        self.assertEqual(0, queue_info['total_messages'], 'queue total messages must be 0')
+        self.assertIsNone(queue_info['id'], 'queue ID must be None')
+        self.assertIsNone(queue_info['push_type'], 'queue push type must be None')
+        self.assertTrue(queue.is_new(), 'queue must not exist on the service')
+        self.assertFalse(queue.is_push_queue(), 'queue must not be Push Queue')
+
+        queue.update(push_type='multicast', retries=5)
+        push_queue_info = queue.info()
+        self.assertIsInstance(push_queue_info, dict, 'queue info must be dict')
+        self.assertEqual('test_queue', push_queue_info['name'], 'queue name must be "test_queue"')
+        self.assertEqual(0, push_queue_info['size'], 'queue size must be 0')
+        self.assertEqual(0, push_queue_info['total_messages'], 'queue total messages must be 0')
+        self.assertIsNotNone(push_queue_info['id'], 'queue ID must be None')
+        self.assertEqual('multicast', push_queue_info['push_type'], 'queue push type must be None')
+        self.assertEqual(5, push_queue_info['retries'], 'number of retries must be 5, but got %s' % push_queue_info['retries'])
+        self.assertFalse(queue.is_new(), 'queue must exist on the service')
+        self.assertTrue(queue.is_push_queue(), 'queue must be Push Queue')
+
+        queue.subscribe('http://not.existed.endpoint.com/push')
+        push_queue_info = queue.info()
+        self.assertEqual('multicast', push_queue_info['push_type'], 'queue push type must be None')
+        self.assertEqual(5, push_queue_info['retries'], 'number of retries must be 5, but got %s' % push_queue_info['retries'])
+        subscr_len = len(push_queue_info['subscribers'])
+        self.assertEqual(1, subscr_len, 'expects queue subscribers list contain 1 subscriber, but got %s' % subscr_len)
+
+        resp = queue.post('push this message!')
+        push_queue_info = queue.info()
+        self.assertEqual('multicast', push_queue_info['push_type'], 'queue push type must be None')
+        self.assertEqual(5, push_queue_info['retries'], 'number of retries must be 5, but got %s' % push_queue_info['retries'])
+        subscr_len = len(push_queue_info['subscribers'])
+        self.assertEqual(1, subscr_len, 'expected queue subscribers list contain 1 subscriber, but got %s' % subscr_len)
+        self.assertEqual(0, push_queue_info['size'], 'queue size must be 0')
+        self.assertEqual(1, push_queue_info['total_messages'], 'expected 1 queue total messages, but got %s' % push_queue_info['total_messages'])
+        self.assertIsNotNone(resp['ids'], 'expected list of IDs, but got None')
+        self.assertEqual(1, len(resp['ids']), 'expected 1 ID in response, but got %s' % len(resp['ids']))
+
+        msg = queue.get_push_message(resp['ids'][0])
+        self.assertIsInstance(msg, Message, 'get_push_message() must return Message instance')
+
+        push_statuses = msg.get_push_status()
+        self.assertIsInstance(push_statuses, list, 'push status must return list of Subscription instances')
+        self.assertEqual(1, len(push_statuses), 'expected number of subscribers is 1, but got %s' % len(push_statuses))
+
+        subscr = push_statuses[0]
+        self.assertIsInstance(subscr, Subscription, 'message subscription status must be instance of Subscription')
+        res = subscr.acknowledge()
+        self.assertTrue(res, 'must return True on message status acknowledgement')
+
+        queue.unsubscribe('http://not.existed.endpoint.com/push')
+        push_queue_info = queue.info()
+        self.assertEqual('multicast', push_queue_info['push_type'], 'queue push type must be None')
+        self.assertEqual(5, push_queue_info['retries'], 'number of retries must be 5, but got %s' % push_queue_info['retries'])
+        subscr_len = len(push_queue_info['subscribers'])
+        self.assertEqual(1, subscr_len, 'expects queue subscribers list contain 1 subscriber, but got %s' % subscr_len)
 
         self.delete_queue(queue)
 
