@@ -129,16 +129,16 @@ class Message(IronMQRouter):
         return True
 
 
-    def push_status(self):
+    def get_push_status(self):
         if self._queue is None or self._queue.name is None or self._queue.name == "":
             raise ValueError("Cannot get the push status of a message if its queue's name is not set.")
         if self.id is None:
             raise ValueError("Cannot get the push status of a message if its ID is not set.")
 
-        path = super(Message, self).to_path("queues/%s/messages/%s/subscribers" % (self._queue.name, self.id))
+        path = super(Message, self).to_path('queues/%s/messages/%s/subscribers' % (self._queue.name, self.id))
         resp = self._client.get(path)
         subscriptions = []
-        for subscriber in resp["body"]["subscribers"]:
+        for subscriber in resp['body']['subscribers']:
             subscriptions.append(Subscription(values=subscriber, queue=self._queue, message=self, client=self._client))
 
         return subscriptions
@@ -272,6 +272,11 @@ class Queue(IronMQRouter):
             del kwargs['raw']
         else: is_raw = False
 
+        if 'instantiate' in kwargs.keys():
+            instantiate = kwargs['instantiate']
+            del kwargs['instantiate']
+        else: instantiate = False
+
         attrs = super(Queue, self).remove_empty(kwargs)
 
         msgs = []
@@ -296,7 +301,10 @@ class Queue(IronMQRouter):
         resp = self._client.post(super(Queue, self).to_path('queues/%s/messages' % self.name),
                                  body=data, headers=headers)
 
-        return super(Queue, self).parse_response(resp['body'])
+        if instantiate:
+            return self._instantiate_messages(resp['body']['messages'], len(msgs))
+        else:
+            return super(Queue, self).parse_response(resp['body'])
 
 
     # `max` keyword argument is the same as count, added for backward compatibility
@@ -313,6 +321,12 @@ class Queue(IronMQRouter):
             return self._instantiate_messages(resp['body']['messages'], n)
         else:
             return super(Queue, self).parse_response(resp['body'])
+
+
+    # This method returns Message instance, but does not make real `get` to API
+    # The library does not care about Push Queue or not because it needs one additional call to API.
+    def get_push_message(self, message_id):
+        return Message(values={'id': message_id}, queue=self, client=self._client)
 
 
     def peek(self, count=None):
