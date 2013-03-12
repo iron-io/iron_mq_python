@@ -326,6 +326,18 @@ class TestIronMQ(unittest.TestCase):
         res = subscr.acknowledge()
         self.assertTrue(res, 'must return True on message status acknowledgement')
 
+        msg = queue.post('push me now!', instantiate=True)
+        self.assertIsInstance(msg, Message, 'post("msg", instantiate=True) must return Message instance')
+
+        push_statuses = msg.get_push_status()
+        self.assertIsInstance(push_statuses, list, 'push status must return list of Subscription instances')
+        self.assertEqual(1, len(push_statuses), 'expected number of subscribers is 1, but got %s' % len(push_statuses))
+
+        subscr = push_statuses[0]
+        self.assertIsInstance(subscr, Subscription, 'message subscription status must be instance of Subscription')
+        res = subscr.acknowledge()
+        self.assertTrue(res, 'must return True on message status acknowledgement')
+
         queue.unsubscribe('http://not.existed.endpoint.com/push')
         push_queue_info = queue.info()
         self.assertEqual('multicast', push_queue_info['push_type'], 'queue push type must be None')
