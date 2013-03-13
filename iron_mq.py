@@ -69,10 +69,10 @@ class Message(IronMQRouter):
             raise ValueError("Cannot initialize a message without a queue.")
 
         # Use Queue's client by default if possible
-        if self._client is None and client is not None:
+        if client is not None:
             if not isinstance(client, IronMQ):
                 raise ValueError('`client` argument must be IronMQ instance')
-            self._client = client
+            self._client = client.client
         if self._client is None:
             raise ValueError("Cannot initialize a message without a client.")
 
@@ -162,12 +162,12 @@ class Message(IronMQRouter):
         path = super(Message, self).to_path(
             'queues/%s/messages/%s/subscribers' % (self._queue.name, self.id))
         resp = self._client.get(path)
+
         subscriptions = []
         for subscriber in resp['body']['subscribers']:
             subscriptions.append(Subscription(values=subscriber,
                                               queue=self._queue,
-                                              message=self,
-                                              client=self._client))
+                                              message=self))
 
         return subscriptions
 
@@ -205,7 +205,10 @@ class Queue(IronMQRouter):
 
     def __init__(self, name=None, values={}, client=None, **kwargs):
         if client is not None:
-            self._client = client
+            if not isinstance(client, IronMQ):
+                raise ValueError('`client` argument must be IronMQ instance')
+            self._client = client.client
+            self._iron_mq = client
         else:
             raise ValueError("Cannot instantiate a queue without a client.")
 
@@ -242,14 +245,9 @@ class Queue(IronMQRouter):
 
             if instantiate:
                 q = Queue(name=self.name,
-                          values=resp['body'], client=self._client)
+                          values=resp['body'], client=self._iron_mq)
                 if 'subscribers' in resp['body']:
-                    q._subscribers = []
-                    for subscriber in raw_queue['subscribers']:
-                        q._subscribers.append(
-                            Subscription(values=subscriber,
-                                         queue=q,
-                                         client=self._client))
+                    q._parse_subscribers(resp['body']['subscribers'])
                 return q
             else:
                 return super(Queue, self).parse_response(resp['body'])
@@ -356,8 +354,9 @@ class Queue(IronMQRouter):
             body=data, headers=headers)
 
         if instantiate:
-            return self._instantiate_messages(resp['body']['messages'],
-                                              len(msgs))
+            msg_ids = [{'id': msg_id} for msg_id in resp['body']['ids']]
+
+            return self._instantiate_messages(msg_ids, len(msgs))
         else:
             return super(Queue, self).parse_response(resp['body'])
 
@@ -384,8 +383,7 @@ class Queue(IronMQRouter):
     # The library does not care is queue Push Queue or not
     # because it needs one additional call to API.
     def get_push_message(self, message_id):
-        return Message(values={'id': message_id},
-                       queue=self, client=self._client)
+        return Message(values={'id': message_id}, queue=self)
 
     def peek(self, count=None):
         if self.name is None or self.name == "":
@@ -498,9 +496,7 @@ class Queue(IronMQRouter):
             if isinstance(subscriber, Subscription):
                 self._subscribers.append(subscriber)
             else:
-                self._subscribers.append(Subscription(values=subscriber,
-                                                      client=self._client,
-                                                      queue=self))
+                self._subscribers.append(Subscription(values=subscriber, queue=self))
 
     def _parse_subscribers(self, subscribers, ignore_empty=True):
         res = []
@@ -528,9 +524,7 @@ class Queue(IronMQRouter):
         res = []
         if messages is not None:
             for msg in messages:
-                res.append(Message(values=msg,
-                                   queue=self,
-                                   client=self._client))
+                res.append(Message(values=msg, queue=self))
 
         if count is None or count < 2:
             res = res[0] if len(res) > 0 else None
@@ -553,7 +547,7 @@ class Subscription(IronMQRouter):
     __ignore = []
     __aliases = {'status': '_status', 'status_code': '_status_code',
                  'retries_remaining': '_retries_remaining',
-                 'retries_delay': '_retries_delay'}
+                 'retries_delay': '_retries_delay', 'id': '_id'}
 
     def __set(self, attr, value):
         setattr(self, attr, value)
@@ -569,8 +563,8 @@ class Subscription(IronMQRouter):
             if isinstance(message, Message):
                 if message._queue is not None:
                     self._queue = message._queue
-                    if self._queue._client is not None:
-                        self._client = queue._client
+                    if message._queue._client is not None:
+                        self._client = message._queue._client
                 if message._client is not None:
                     self._client = message._client
                 self._message = message
@@ -594,7 +588,10 @@ class Subscription(IronMQRouter):
                                  "a string containing the queue's name.")
 
         if client is not None:
-            self._client = client
+            if not isinstance(client, IronMQ):
+                raise ValueError('`client` argument must be IronMQ instance')
+            self._client = client.client
+
         if self._queue is None:
             raise ValueError("Cannot initialize " +
                              "a subscription without a queue.")
@@ -668,7 +665,7 @@ class IronMQ(IronMQRouter):
         queues = []
         if instantiate:
             for queue in raw_queues:
-                queues.append(Queue(values=queue, client=self.client))
+                queues.append(Queue(values=queue, client=self))
         else:
             for queue in resp['body']:
                 queues.append(queue['name'])
@@ -686,10 +683,10 @@ class IronMQ(IronMQRouter):
             path = super(IronMQ, self).to_path('queues/%s' % queue)
             resp = self.client.get(path)
             raw_queue = resp['body']
-            q = Queue(name=queue, values=raw_queue, client=self.client)
+            q = Queue(name=queue, values=raw_queue, client=self)
         except requests.HTTPError as e:
             if e.response.status_code == requests.codes.not_found:
-                q = Queue(queue, client=self.client)
+                q = Queue(queue, client=self)
             else:
                 e.response.raise_for_status()
         return q
