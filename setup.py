@@ -4,7 +4,7 @@ setup(
         name = "iron-mq",
         py_modules = ["iron_mq"],
         install_requires = ["iron_core>=1.0.2"],
-        version = "1.0.0",
+        version = "0.4.0",
         description = "Client library for IronMQ, a message queue in the cloud",
         author = "Iron.io",
         author_email = "thirdparty@iron.io",

@@ -301,9 +301,6 @@ class Queue(IronMQRouter):
 
         return super(Queue, self).parse_response(resp['body'])
 
-    # `raw` keyword argument is used for backward compatibility
-    # to push prepared messages dicts.
-    # This is switched off by default!
     def post(self, *messages, **kwargs):
         if self.name is None or self.name == "":
             raise ValueError("Cannot post to a queue " +
@@ -314,13 +311,6 @@ class Queue(IronMQRouter):
             del kwargs['ignore_empty']
         else:
             ignore_empty = False
-
-        # backward compatibility
-        if 'raw' in kwargs.keys():
-            is_raw = kwargs['raw']
-            del kwargs['raw']
-        else:
-            is_raw = False
 
         if 'instantiate' in kwargs.keys():
             instantiate = kwargs['instantiate']
@@ -341,10 +331,14 @@ class Queue(IronMQRouter):
                                          "but was not set.")
                 msg = message.raw()
             # backward compatibility
-            elif is_raw and isinstance(message, dict):
+            elif isinstance(message, dict):
                 msg = message
             else:
-                msg = {'body': message}
+                m = message
+                if not isinstance(message, (basestring, int, long, float, complex)):
+                    m = json.dumps(message)
+
+                msg = {'body': m}
 
             msg.update(attrs)
             msgs.append(msg)
