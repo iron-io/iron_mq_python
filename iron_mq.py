@@ -13,7 +13,8 @@ class IronMQRouter(object):
         """Build a URL with query parameters"""
         query = urllib.urlencode(self.remove_empty(kwargs))
         fullpath = urllib.quote(base_path)
-        fullpath = fullpath + ('?' + query if query != '' else '')
+        if query != '':
+            fullpath = "%s?%s" % (fullpath, query)
 
         return fullpath
 
@@ -25,11 +26,13 @@ class IronMQRouter(object):
 
         return args
 
-    def parse_response(self, body):
+    def parse_response(self, body, **defaults):
         """Uses defaultdict to return response"""
         resp = defaultdict(lambda: None)
-        for k, v in body.items():
-            resp[k] = v
+        for key, default_value in defaults.items():
+            resp[key] = default_value
+        for key, value in body.items():
+            resp[key] = value
 
         return resp
 
@@ -250,7 +253,7 @@ class Queue(IronMQRouter):
                     q._parse_subscribers(resp['body']['subscribers'])
                 return q
             else:
-                return super(Queue, self).parse_response(resp['body'])
+                return super(Queue, self).parse_response(resp['body'], subscribers=[])
         except requests.HTTPError as e:
             resp_code = e.response.status_code
             if resp_code == requests.codes.not_found and not instantiate:
@@ -362,14 +365,18 @@ class Queue(IronMQRouter):
 
     # `max` keyword argument is the same as count,
     #       added for backward compatibility
-    # `instantiate` keyword argument added for backward compatibility,
-    #               but switched of by default
+    # `instantiate` keyword argument added for backward compatibility.
+    #               Message instance will be return by default.
+    #               To enable backward compatibility set argument to False
     def get(self, count=None, timeout=None, max=None, instantiate=True):
         if self.name is None or self.name == "":
             raise ValueError("Cannot get messages from a queue " +
                              "until its name attribute is set.")
 
-        n = count if count is not None else max
+        n = count
+        if n is None:
+            n = max
+
         path = super(Queue, self).to_path(
             'queues/%s/messages' % self.name, n=n, timeout=timeout)
         resp = self._client.get(path)
@@ -467,16 +474,15 @@ class Queue(IronMQRouter):
         msg_id = None
         endpoint = None
         is_msg_delete = len(args) == 1
-        if is_msg_delete:
-            # delete message by ID
-            endpoint = super(Queue, self).to_path(
-                'queues/%s/messages/%s' % (self.name, args[0]))
-        else:
-            endpoint = super(Queue, self).to_path('queues/%s' % self.name)
-
         try:
-            resp = self._client.delete(endpoint)
-            self._id = None
+            resp = None
+            if is_msg_delete:
+                msg = Message(values={'id': args[0]}, queue=self)
+                resp = msg.delete()
+            else:
+                endpoint = super(Queue, self).to_path('queues/%s' % self.name)
+                resp = self._client.delete(endpoint)
+                self._id = None
         except requests.HTTPError as e:
             resp_code = e.response.status_code
             if resp_code == requests.codes.not_found and not is_msg_delete:
