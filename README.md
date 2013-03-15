@@ -3,7 +3,7 @@ IronMQ Python Client Library
 
 Python language binding for IronMQ. [IronMQ](http://www.iron.io/products/mq) is an elastic message queue for managing data and event flow within cloud applications and between systems. [See How It Works](http://www.iron.io/products/mq/how)
 
-# Getting Started
+## Getting Started
 
 1\. Install iron_mq_python
 
@@ -28,7 +28,7 @@ ironmq = IronMQ(project_id='500f7b....b0f302e9', token='Et1En7.....0LuW39Q')
 ```
 
 
-# The Basics
+## The Basics
 
 ### Get Queues List
 
@@ -37,6 +37,8 @@ queues = ironmq.queues() # ['queue1 name', 'queue2 name', ...]
 ```
 
 returns list of `Queue` objects.
+
+--
 
 ### Get a Queue Object
 
@@ -51,6 +53,8 @@ queue = ironmq.get_queue('my_queue')
 
 Now you can use it.
 
+--
+
 ### Post a Message on a Queue
 
 Messages are placed on the queue in a FIFO arrangement.
@@ -59,6 +63,8 @@ If a queue does not exist, it will be created upon the first posting of a messag
 ```python
 queue.post('hello world!')
 ```
+
+--
 
 ### Retrieve Queue Information
 
@@ -69,6 +75,8 @@ q_id = queue.id()
 q_size = queue.size()
 q_name = queue.name
 ```
+
+--
 
 ### Get a Message off a Queue
 
@@ -82,6 +90,8 @@ When you pop/get a message from the queue, it is no longer on the queue but it s
 You have to explicitly delete the message or else it will go back onto the queue after the `timeout`.
 The default `timeout` is 60 seconds. Minimal `timeout` is 30 seconds.
 
+--
+
 ### Delete a Message from a Queue
 
 ```python
@@ -90,10 +100,12 @@ msg.delete()
 
 Be sure to delete a message from the queue when you're done with it.
 
+--
 
-# Important Notes on Backward Compatibility
 
-New client library (version 1.0.0) includes partial backward compatibility with previous version (0.3).
+## Important Notes on Backward Compatibility
+
+New client library (version 0.4) includes partial backward compatibility with previous version (0.3).
 Please, read this notes before you will update your client library.
 
 * `queue.get()` instantiates `Message` object instead returning a raw response body.
@@ -121,7 +133,7 @@ Because `queue.delete()` method is used for queue deletion (not supported in ver
 We are highly recomend to use new syntax explained hereinafter.
 
 
-# IronMQ
+## IronMQ
 
 `IronMQ` class uses `IronClient` from [iron_core_python](https://github.com/iron-io/iron_core_python) and provides easy access to the queues.
 
@@ -157,6 +169,8 @@ queues = ironmq.queues(page=2, per_page=5, instantiate=True)
 
 The method returns list of queues
 
+--
+
 ### Get Queue by Name
 
 ```python
@@ -169,8 +183,9 @@ queue = ironmq.get_queue('my_queue')
 **Note:** if queue with desired name does not exist it returns fake queue.
 Queue will be created automatically on post of first message or queue configuration update.
 
+--
 
-# Queues
+## Queues
 
 ### Retrieve Queue Information
 
@@ -201,6 +216,8 @@ If you want to have new `Queue` object as response set `instantiate` parameter t
 updated_queue = queue.info(instantiate=True)
 ```
 
+--
+
 ### Delete a Message Queue
 
 ```python
@@ -209,6 +226,8 @@ queue.delete() # True
 
 Returns `True` if queue is deleted. If queue is not found the method returns `False`.
 Otherwise raises exception for HTTP status.
+
+--
 
 ### Post Messages to a Queue
 
@@ -245,6 +264,7 @@ Default is 0 seconds. Maximum is 604,800 seconds (7 days).
 * `expires_in`: How long in seconds to keep the item on the queue before it is deleted.
 Default is 604,800 seconds (7 days). Maximum is 2,592,000 seconds (30 days).
 
+--
 
 ### Get Messages from a Queue
 
@@ -267,6 +287,8 @@ Maximum is 86,400 seconds (24 hours).
 When `count` parameter is specified and greater than 1 method returns `list` of `Queue`s.
 Otherwise, `Queue` instance will be returned.
 
+--
+
 ### Touch a Message on a Queue
 
 Touching a reserved message extends its timeout by the duration specified when the message was created, which is 60 seconds by default.
@@ -276,6 +298,8 @@ message = queue.get() # Message
 
 message.touch()
 ```
+
+--
 
 ### Release Message
 
@@ -292,6 +316,8 @@ message.release(delay=42) # True
 * `delay`: The item will not be available on the queue until this many seconds have passed.
 Default is 0 seconds. Maximum is 604,800 seconds (7 days).
 
+--
+
 ### Delete a Message from a Queue
 
 ```python
@@ -299,6 +325,8 @@ message = queue.get()
 
 message.delete() # True
 ```
+
+--
 
 ### Peek Messages from a Queue
 
@@ -315,6 +343,8 @@ messages = queue.peek(count=13) # [Message, ...]
 
 * `count`: The maximum number of messages to peek. Default is 1. Maximum is 100.
 
+--
+
 ### Clear a Queue
 
 ```python
@@ -322,7 +352,7 @@ queue.clear() # True
 ```
 
 
-# Push Queues
+## Push Queues
 
 IronMQ push queues allow you to setup a queue that will push to an endpoint, rather than having to poll the endpoint. 
 [Here's the announcement for an overview](http://blog.iron.io/2013/01/ironmq-push-queues-reliable-message.html). 
@@ -351,6 +381,8 @@ See below for example json.
 * `retries`: How many times to retry on failure. Default is 3.
 * `retries_delay`: Delay between each retry in seconds. Default is 60.
 
+--
+
 ### Set Subscribers on a Queue
 
 Subscribers can be any HTTP endpoint. `push_type` is one of:
@@ -367,6 +399,8 @@ subscribers = [
 
 queue.update(subscribers=subscribers, push_type=ptype)
 ```
+
+--
 
 ### Add/Remove Subscribers on a Queue
 
@@ -385,6 +419,8 @@ queue.unsubscribe([
     'http://second.endpoint.com/process'
 ])
 ```
+
+--
 
 ### Get Message Push Status
 
@@ -413,6 +449,8 @@ subscriptions = message.get_push_status()
 
 Returns an array of subscribers with status.
 
+--
+
 ### Acknowledge / Delete Message Push Status
 
 ```python
@@ -423,6 +461,16 @@ for subscription in subscriptions:
     # subscription.delete() # is alias for `acknowledge()`
 ```
 
+--
+
+
+## Further Links
+
+* [IronMQ Overview](http://dev.iron.io/mq/)
+* [IronMQ REST/HTTP API](http://dev.iron.io/mq/reference/api/)
+* [Push Queues](http://dev.iron.io/mq/reference/push_queues/)
+* [Other Client Libraries](http://dev.iron.io/mq/libraries/)
+* [Live Chat, Support & Fun](http://get.iron.io/chat)
 
 -------------
 © 2011 - 2013 Iron.io Inc. All Rights Reserved.
