@@ -3,8 +3,8 @@ from setuptools import setup
 setup(
         name = "iron-mq",
         py_modules = ["iron_mq"],
-        install_requires = ["iron_core"],
-        version = "0.3",
+        install_requires = ["iron_core>=1.0.2"],
+        version = "0.4.0",
         description = "Client library for IronMQ, a message queue in the cloud",
         author = "Iron.io",
         author_email = "thirdparty@iron.io",
@@ -25,7 +25,7 @@ IronMQ client library
 ---------------------
 
 This package wraps the IronMQ API. It provides a simple and intuitive way
-to interact with the IronMW service.
+to interact with the IronMQ service.
 
 IronMQ is a service provided by Iron.io. A flexible, scalable,
 and durable messaging system lets different parts of a cloud app
