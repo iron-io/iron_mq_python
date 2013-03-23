@@ -16,44 +16,37 @@ class Queue:
         mq -- An instance of IronMQ.
         name -- The name of the queue.
         """
-
         self.client = mq.client
         self.name = name
-
 
     def info(self):
         """Execute an HTTP request to get details on a queue, and
         return it.
         """
-        
         url = "queues/%s" % (self.name,)
         result = self.client.get(url)
-        return result["body"]
 
+        return result["body"]
 
     def size(self):
         """Queue size"""
         return self.info()['size']
 
-
     def id(self):
         """Queue ID"""
         return self.info()['id']
-
 
     def total_messages(self):
         """Queue total messages count"""
         return self.info()['total_messages']
 
-
     def clear(self):
         """Executes an HTTP request to clear all contents of a queue.
         """
-
         url = "queues/%s/clear" % (self.name,)
         result = self.client.post(url)
-        return result['body']
 
+        return result['body']
 
     def delete(self,  message_id):
         """Execute an HTTP request to delete a message from queue.
@@ -61,11 +54,10 @@ class Queue:
         Arguments:
         message_id -- The ID of the message to be deleted.
         """
-
         url = "queues/%s/messages/%s" % (self.name, message_id)
         result = self.client.delete(url)
-        return result["body"]
 
+        return result["body"]
 
     def post(self, *messages):
         """Executes an HTTP request to create message on the queue.
@@ -74,8 +66,7 @@ class Queue:
         Arguments:
         messages -- An array of messages to be added to the queue.
         """
-        
-        url = "queues/%s/messages" % (self.name,)
+        url = "queues/%s/messages" % self.name
 
         msgs = [{'body':msg} if isinstance(msg, basestring) else msg
                 for msg in messages]
@@ -86,21 +77,107 @@ class Queue:
 
         return result['body']
 
-
     def get(self, max=None):
         """Executes an HTTP request to get a message off of a queue.
 
         Keyword arguments:
         max -- The maximum number of messages to pull. Defaults to 1.
         """
-        
-        n = ""
+        url = "queues/%s/messages" % self.name
         if max is not None:
-            n = "&n=%s" % max
-        url = "queues/%s/messages?%s" % (self.name, n)
+            url = "%s?n=%s" % (url, max)
+
         result = self.client.get(url)
+
         return result['body']
 
+    def peek(self, max=None):
+        url = "queues/%s/messages/peek" % self.name
+        if max is not None:
+            url = "%s?n=%s" % (url, max)
+
+        response = self.client.get(url)
+
+        return response['body']
+
+    def touch(self, message_id):
+        url = "queues/%s/messages/%s/touch" % (self.name, message_id)
+
+        response = self.client.post(url, body=json.dumps({}),
+                                    headers={"Content-Type":"application/json"})
+
+        return response['body']
+
+    def release(self, message_id, delay=0):
+        url = "queues/%s/messages/%s/release" % (self.name, message_id)
+        body = {}
+        if delay > 0:
+            body['delay'] = delay
+        body = json.dumps(body)
+
+        response = self.client.post(url, body=body,
+                                    headers={"Content-Type":"application/json"})
+
+        return response['body']
+
+    def update(self, subscribers=None, **kwargs):
+        url = "queues/%s" % self.name
+        body = kwargs
+        if subscribers is not None:
+            if isinstance(subscribers, list):
+                body.update(self._prepare_subscribers(*subscribers))
+            else:
+                body['subscribers'] = [{'url': subscribers}]
+        body = json.dumps(body)
+
+        response = self.client.post(url, body=body,
+                                    headers={"Content-Type":"application/json"})
+
+        return response['body']
+
+    def delete_queue(self):
+        url = "queues/%s" % self.name
+
+        response = self.client.delete(url)
+
+        return response['body']
+
+    def add_subscribers(self, *subscribers):
+        url = "queues/%s/subscribers" % self.name
+        body = json.dumps(self._prepare_subscribers(*subscribers))
+
+        response = self.client.post(url, body=body,
+                                    headers={"Content-Type":"application/json"})
+
+        return response['body']
+
+    def remove_subscribers(self, *subscribers):
+        url = "queues/%s/subscribers" % self.name
+        body = json.dumps(self._prepare_subscribers(*subscribers))
+
+        response = self.client.delete(url, body=body,
+                                      headers={"Content-Type":"application/json"})
+
+        return response['body']
+
+    def get_message_push_statuses(self, message_id):
+        url = "queues/%s/messages/%s/subscribers" % (self.name, message_id)
+
+        response = self.client.get(url)
+
+        return response['body']
+
+    def delete_message_push_status(self, message_id, subscriber_id):
+        url = "queues/%s/messages/%s/subscribers/%s" % (self.name, message_id, subscriber_id)
+
+        response = self.client.delete(url)
+
+        return response['body']
+
+    def _prepare_subscribers(self, *subscribers):
+        subscrs = [{'url': ss} for ss in subscribers]
+
+        return {'subscribers': subscrs}
 
 class IronMQ:
     NAME = "iron_mq_python"
@@ -119,7 +196,7 @@ class IronMQ:
                 version=IronMQ.VERSION, product="iron_mq", **kwargs)
 
 
-    def queues(self, page=None):
+    def queues(self, page=None, per_page=None):
         """Execute an HTTP request to get a list of queues and return it.
 
         Keyword arguments:
@@ -129,12 +206,15 @@ class IronMQ:
         options = {}
         if page is not None:
             options['page'] = page
+        if per_page is not None:
+            options['per_page'] = per_page
         
         query = urllib.urlencode(options)
         url = "queues"
         if query != "":
             url = "%s?%s" % (url, query)
         result = self.client.get(url)
+
         return [queue["name"] for queue in result["body"]]
 
 
@@ -144,7 +224,6 @@ class IronMQ:
         Arguments:
         queue_name -- The name of the queue.
         """
-
         return Queue(self, queue_name)
 
 
