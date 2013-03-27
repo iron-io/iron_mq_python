@@ -181,7 +181,7 @@ class Queue:
 
 class IronMQ:
     NAME = "iron_mq_python"
-    VERSION = "0.3"
+    VERSION = "0.4"
     client = None
     name = None
 

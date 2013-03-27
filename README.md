@@ -107,9 +107,75 @@ queue.total_messages() # 17
 queue.id() # u'502d03d3211a8f5e7742d224'
 ```
 
+### Peek at messages
+To view messages without reserving them, use peek:
+
+```python
+msgs = queue.peek(max=10) [{'id': '..', 'body': '..'}, ..]
+```
+
+### Touch a message
+
+To extend the reservation on a reserved message, use touch. The message reservation will be extended by the message's `timeout`.
+
+```python
+queue.touch(msg_id)
+```
+
+### Release a reserved message
+To release a message that is currently reserved, use release:
+
+```python
+queue.release(msg_id)
+```
+
+### Delete a queue
+
+To delete a queue, use `delete_queue`:
+
+```python
+queue.delete_queue()
+```
+
+## Push Queues
+
+### Update Queue Information
+
+To update the queue's push type and subscribers, use update:
+
+```python
+queue.update(subscribers=["http://endpoint1.com", "https://end.point.com/2"], push_type"unicast")
+```
+
+### Add subscribers to a push queue
+
+```python
+queue.add_subscribers(*["http://endpoint1.com", "https://end.point.com/2"])
+```
+
+### Remove subscribers from a push queue
+
+```python
+queue.remove_subscribers(*["http://endpoint1.com", "https://end.point.com/2"])
+```
+
+### Get the push status of a message
+
+```python
+queue.get_message_push_status(message_id) # {"subscribers": [{"retries_delay": 60, "retries_remaining": 2, "status_code": 200, "status": "deleted", "url": "http://endpoint1.com", "id": "52.."}, {..}, ..]}
+```
+
+### Delete a pushed message
+
+If you respond with a 202 status code, the pushed message will be reserved, not deleted, and should be manually deleted. You can get the message ID and subscriber ID from the push message's headers.
+
+```python
+queue.delete_message_push_status(message_id, subscriber_id)
+```
+
 # Full Documentation
 
 You can find more documentation here:
 
 * http://iron.io
-* http://docs.iron.io
+* http://dev.iron.io
