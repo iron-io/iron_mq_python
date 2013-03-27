@@ -126,7 +126,7 @@ queue.touch(msg_id)
 To release a message that is currently reserved, use release:
 
 ```python
-queue.release(msg_id)
+queue.release(msg_id, delay=30) # message will be released after delay seconds, 0 by defaults
 ```
 
 ### Delete a queue
@@ -159,10 +159,10 @@ queue.add_subscribers(*["http://endpoint1.com", "https://end.point.com/2"])
 queue.remove_subscribers(*["http://endpoint1.com", "https://end.point.com/2"])
 ```
 
-### Get the push status of a message
+### Get the push statuses of a message
 
 ```python
-queue.get_message_push_status(message_id) # {"subscribers": [{"retries_delay": 60, "retries_remaining": 2, "status_code": 200, "status": "deleted", "url": "http://endpoint1.com", "id": "52.."}, {..}, ..]}
+queue.get_message_push_statuses(message_id) # {"subscribers": [{"retries_delay": 60, "retries_remaining": 2, "status_code": 200, "status": "deleted", "url": "http://endpoint1.com", "id": "52.."}, {..}, ..]}
 ```
 
 ### Delete a pushed message
