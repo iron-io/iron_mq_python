@@ -78,8 +78,10 @@ queue.post(*[str(i) for i in range(10)])
 
 ### **Pop** a message off the queue:
 ```python
-queue.get()
+queue.get(max=10) # {"messages": [{'id': '..', 'body': '..'}, ..]}
 ```
+Set max to the number of messages to return, 1 by default.
+
 When you pop/get a message from the queue, it will NOT be deleted.
 It will eventually go back onto the queue after a timeout if you don't delete it (default timeout is 60 seconds).
 ### **Delete** a message from the queue:
@@ -111,7 +113,7 @@ queue.id() # u'502d03d3211a8f5e7742d224'
 To view messages without reserving them, use peek:
 
 ```python
-msgs = queue.peek(max=10) [{'id': '..', 'body': '..'}, ..]
+msgs = queue.peek(max=10) # {"messages": [{'id': '..', 'body': '..'}, ..]}
 ```
 
 ### Touch a message
