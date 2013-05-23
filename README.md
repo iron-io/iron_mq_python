@@ -78,9 +78,9 @@ queue.post(*[str(i) for i in range(10)])
 
 ### **Pop** a message off the queue:
 ```python
-queue.get(max=10) # {"messages": [{'id': '..', 'body': '..'}, ..]}
+queue.get(max=10, timeout=None) # {"messages": [{'id': '..', 'body': '..'}, ..]}
 ```
-Set max to the number of messages to return, 1 by default.
+Set max to the number of messages to return, 1 by default. An optional `timeout` parameter can be used to specify a per-message timeout, or the timeout the message was posted with will be used.
 
 When you pop/get a message from the queue, it will NOT be deleted.
 It will eventually go back onto the queue after a timeout if you don't delete it (default timeout is 60 seconds).

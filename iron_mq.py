@@ -77,15 +77,24 @@ class Queue:
 
         return result['body']
 
-    def get(self, max=None):
+    def get(self, max=None, timeout=None):
         """Executes an HTTP request to get a message off of a queue.
 
         Keyword arguments:
         max -- The maximum number of messages to pull. Defaults to 1.
         """
         url = "queues/%s/messages" % self.name
+        qitems = {}
         if max is not None:
-            url = "%s?n=%s" % (url, max)
+            qitems["n"] = max
+        if timeout is not None:
+            qitems["timeout"] = timeout
+        qs = []
+        for k, v in qitems.items():
+            qs.append("%s=%s" % (k, v))
+        qs = "&".join(qs)
+        if qs != "":
+            url = "%s?%s" % (url, qs)
 
         result = self.client.get(url)
 
@@ -181,7 +190,7 @@ class Queue:
 
 class IronMQ:
     NAME = "iron_mq_python"
-    VERSION = "0.4"
+    VERSION = "0.5"
     client = None
     name = None
 

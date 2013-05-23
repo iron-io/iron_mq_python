@@ -22,6 +22,21 @@ class TestIronMQ(unittest.TestCase):
         message = "%s" % message["messages"][0]["body"]
         self.assertEqual(msg, message)
 
+    def test_getMessageTimeout(self):
+        msg = "%s" % time.time()
+        q = self.mq.queue("test_queue")
+        q.clear()
+        q.post(msg)
+        message = q.get(timeout=180)
+        message = "%s" % message["messages"][0]["body"]
+        self.assertEqual(msg, message)
+        time.sleep(120)
+        m2 = q.get()
+        self.assertEqual(0, len(m2["messages"]))
+        time.sleep(120)
+        m3 = q.get()
+        self.assertEqual(msg, message)
+
     def test_deleteMessage(self):
         q = self.mq.queue("test_queue")
         size = q.size()
