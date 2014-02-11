@@ -59,6 +59,19 @@ class Queue:
 
         return result["body"]
 
+    def delete_multiple(self,  *messages):
+        """Execute an HTTP request to delete messages from queue.
+
+        Arguments:
+        messages -- An array of messages to be deleted from the queue.
+        """
+        url = "queues/%s/messages" % self.name
+        
+        data = json.dumps({"ids": messages})
+        result = self.client.delete(url=url, body=data,
+                                  headers={"Content-Type":"application/json"})
+        return result["body"]
+
     def post(self, *messages):
         """Executes an HTTP request to create message on the queue.
         Creates queue if not existed.
@@ -99,6 +112,11 @@ class Queue:
         result = self.client.get(url)
 
         return result['body']
+
+    def get_message_by_id(self, message_id):
+        url = "queues/%s/messages/%s" % (self.name, message_id)
+        response = self.client.get(url)
+        return response['body']
 
     def peek(self, max=None):
         url = "queues/%s/messages/peek" % self.name
