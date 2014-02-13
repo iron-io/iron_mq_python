@@ -76,5 +76,21 @@ class TestIronMQ(unittest.TestCase):
 
         self.assertEqual('Deleted', self.mq.deleteMessage(name, msg_id)['msg'])
 
+    def test_postAndDeleteMultipleMessages(self):
+        q = self.mq.queue("test_queue")
+        old_size = q.size()
+        msg = q.post("more", "and more")
+        self.assertEqual(old_size, q.size() - 2)
+
+        q.delete_multiple(msg["ids"][0],msg["ids"][1])
+        self.assertEqual(old_size, q.size())
+
+    def test_getMessageById(self):
+        body = "%s" % time.time()
+        q = self.mq.queue("test_queue")
+        response_post = q.post(body)
+        message = q.get_message_by_id(response_post["ids"][0])
+        self.assertEqual(body, message["body"])
+
 if __name__ == '__main__':
     unittest.main()

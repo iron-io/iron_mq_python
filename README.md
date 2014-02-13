@@ -84,11 +84,24 @@ Set max to the number of messages to return, 1 by default. An optional `timeout`
 
 When you pop/get a message from the queue, it will NOT be deleted.
 It will eventually go back onto the queue after a timeout if you don't delete it (default timeout is 60 seconds).
+
+### Get message by id
+```python
+queue.get_message_by_id("xxxxxxxx")
+```
+
 ### **Delete** a message from the queue:
 ```python
 queue.delete(message_id)
 ```
 Delete a message from the queue when you're done with it.
+
+Delete multiple messages in one API call:
+
+```python
+queue.delete_multiple("xxxxxxxxx", "xxxxxxxxx");
+```
+Delete multiple messages specified by messages id array.
 
 ### ***Clear*** a queue:
 ```python
