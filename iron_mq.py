@@ -169,6 +169,29 @@ class Queue:
 
         return response['body']
 
+    def add_alerts(self, *alerts):
+        url = "queues/%s/alerts" % self.name
+        body = json.dumps({'alerts': alerts})
+        response = self.client.post(url, body=body, headers={"Content-Type":"application/json"})
+        return response['body']
+
+    def update_alerts(self, *alerts):
+        url = "queues/%s/alerts" % self.name
+        body = json.dumps({'alerts': alerts})
+        response = self.client.put(url, body=body, headers={"Content-Type":"application/json"})
+        return response['body']
+
+    def remove_alerts(self, *alert_ids):
+        url = "queues/%s/alerts" % self.name
+        body = json.dumps(self._prepare_alert_ids(*alert_ids))
+        response = self.client.delete(url, body=body, headers={"Content-Type":"application/json"})
+        return response['body']
+
+    def remove_alert(self, alert_id):
+        url = "queues/%s/alerts/%s" % (self.name, alert_id)
+        response = self.client.delete(url, body={}, headers={"Content-Type":"application/json"})
+        return response['body']
+
     def add_subscribers(self, *subscribers):
         url = "queues/%s/subscribers" % self.name
         body = json.dumps(self._prepare_subscribers(*subscribers))
@@ -200,6 +223,10 @@ class Queue:
         response = self.client.delete(url)
 
         return response['body']
+
+    def _prepare_alert_ids(self, *alert_ids):
+        alerts = [{'id': id} for id in alert_ids]
+        return {'alerts': alerts}
 
     def _prepare_subscribers(self, *subscribers):
         subscrs = [{'url': ss} for ss in subscribers]
