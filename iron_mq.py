@@ -90,7 +90,7 @@ class Queue:
 
         return result['body']
 
-    def get(self, max=None, timeout=None):
+    def get(self, max=None, timeout=None, wait=None):
         """Executes an HTTP request to get a message off of a queue.
 
         Keyword arguments:
@@ -102,6 +102,8 @@ class Queue:
             qitems["n"] = max
         if timeout is not None:
             qitems["timeout"] = timeout
+        if wait is not None:
+            qitems["wait"] = wait
         qs = []
         for k, v in qitems.items():
             qs.append("%s=%s" % (k, v))
