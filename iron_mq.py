@@ -1,9 +1,14 @@
 import iron_core
 import urllib
+import sys
 try:
     import json
 except:
     import simplejson as json
+
+if sys.version_info.major > 2:
+    basestring = str
+
 
 class Queue:
     client = None
