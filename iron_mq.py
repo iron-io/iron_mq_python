@@ -33,7 +33,7 @@ class Queue(object):
         url = "queues/%s" % (self.name,)
         result = self.client.get(url)
 
-        return result["body"]
+        return result["body"]["queue"]
 
     def size(self):
         """Queue size"""
@@ -50,19 +50,29 @@ class Queue(object):
     def clear(self):
         """Executes an HTTP request to clear all contents of a queue.
         """
-        url = "queues/%s/clear" % (self.name,)
-        result = self.client.post(url)
+        url = "queues/%s/messages" % self.name
+        result = self.client.delete(url = url,
+                                    body = json.dumps({}),
+                                    headers={"Content-Type":"application/json"})
 
         return result['body']
 
-    def delete(self,  message_id):
+    def delete(self,  message_id, reservation_id=None):
         """Execute an HTTP request to delete a message from queue.
 
         Arguments:
         message_id -- The ID of the message to be deleted.
+        reservation_id -- Reservation Id of the message. Reserved message could not be deleted without reservation Id.
         """
         url = "queues/%s/messages/%s" % (self.name, message_id)
-        result = self.client.delete(url)
+        qitems = {}
+        if reservation_id is not None:
+           qitems["reservation_id"] = reservation_id
+        body = json.dumps(qitems)
+
+        result = self.client.delete(url = url,
+                                    body = body,
+                                    headers={"Content-Type":"application/json"})
 
         return result["body"]
 
@@ -98,29 +108,35 @@ class Queue(object):
         return result['body']
 
     def get(self, max=None, timeout=None, wait=None):
-        """Executes an HTTP request to get a message off of a queue.
+        """Deprecated. User Queue.reserve() instead. Executes an HTTP request to get a message off of a queue.
 
         Keyword arguments:
         max -- The maximum number of messages to pull. Defaults to 1.
         """
-        url = "queues/%s/messages" % self.name
+        response = self.reserve(max, timeout)
+        return response
+
+
+    def reserve(self, max=None, timeout=None):
+        """Retrieves Messages from the queue and reserves it.
+
+        Arguments:
+        max -- The maximum number of messages to reserve. Defaults to 1.
+        timeout -- Timeout in seconds.
+        """
+        url = "queues/%s/reservations" % self.name
         qitems = {}
         if max is not None:
             qitems["n"] = max
         if timeout is not None:
             qitems["timeout"] = timeout
-        if wait is not None:
-            qitems["wait"] = wait
-        qs = []
-        for k, v in qitems.items():
-            qs.append("%s=%s" % (k, v))
-        qs = "&".join(qs)
-        if qs != "":
-            url = "%s?%s" % (url, qs)
+        body = json.dumps(qitems)
 
-        result = self.client.get(url)
+        response = self.client.post(url, body=body,
+                                    headers={"Content-Type":"application/json"})
 
-        return result['body']
+        return response['body']
+
 
     def get_message_by_id(self, message_id):
         url = "queues/%s/messages/%s" % (self.name, message_id)
@@ -136,10 +152,20 @@ class Queue(object):
 
         return response['body']
 
-    def touch(self, message_id):
-        url = "queues/%s/messages/%s/touch" % (self.name, message_id)
+    def touch(self, message_id, reservation_id = None):
+        """Touching a reserved message extends its timeout to the duration specified when the message was created.
 
-        response = self.client.post(url, body=json.dumps({}),
+        Arguments:
+        message_id -- The ID of the message.
+        reservation_id -- Reservation Id of the message. Reserved message could not be deleted without reservation Id.
+        """
+        url = "queues/%s/messages/%s/touch" % (self.name, message_id)
+        qitems = {}
+        if reservation_id is not None:
+            qitems["reservation_id"] = reservation_id
+        body = json.dumps(qitems)
+
+        response = self.client.post(url, body=body,
                                     headers={"Content-Type":"application/json"})
 
         return response['body']
