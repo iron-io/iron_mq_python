@@ -26,7 +26,7 @@ class Queue:
         url = "queues/%s" % (self.name,)
         result = self.client.get(url)
 
-        return result["body"]
+        return result["body"]["queue"]
 
     def size(self):
         """Queue size"""
@@ -43,19 +43,29 @@ class Queue:
     def clear(self):
         """Executes an HTTP request to clear all contents of a queue.
         """
-        url = "queues/%s/clear" % (self.name,)
-        result = self.client.post(url)
+        url = "queues/%s/messages" % self.name
+        result = self.client.delete(url = url,
+                                    body = json.dumps({}),
+                                    headers={"Content-Type":"application/json"})
 
         return result['body']
 
-    def delete(self,  message_id):
+    def delete(self,  message_id, reservation_id=None):
         """Execute an HTTP request to delete a message from queue.
 
         Arguments:
         message_id -- The ID of the message to be deleted.
+        reservation_id -- Reservation Id of the message. Reserved message could not be deleted without reservation Id.
         """
         url = "queues/%s/messages/%s" % (self.name, message_id)
-        result = self.client.delete(url)
+        qitems = {}
+        if reservation_id is not None:
+           qitems["reservation_id"] = reservation_id
+        body = json.dumps(qitems)
+
+        result = self.client.delete(url = url,
+                                    body = body,
+                                    headers={"Content-Type":"application/json"})
 
         return result["body"]
 
@@ -66,7 +76,7 @@ class Queue:
         messages -- An array of messages to be deleted from the queue.
         """
         url = "queues/%s/messages" % self.name
-        
+
         data = json.dumps({"ids": messages})
         result = self.client.delete(url=url, body=data,
                                   headers={"Content-Type":"application/json"})
@@ -91,37 +101,43 @@ class Queue:
         return result['body']
 
     def get(self, max=None, timeout=None, wait=None):
-        """Executes an HTTP request to get a message off of a queue.
+        """Deprecated. User Queue.reserve() instead. Executes an HTTP request to get a message off of a queue.
 
         Keyword arguments:
         max -- The maximum number of messages to pull. Defaults to 1.
         """
-        url = "queues/%s/messages" % self.name
+        response = self.reserve(max, timeout)
+        return response
+
+
+    def reserve(self, max=None, timeout=None):
+        """Retrieves Messages from the queue and reserves it.
+
+        Arguments:
+        max -- The maximum number of messages to reserve. Defaults to 1.
+        timeout -- Timeout in seconds.
+        """
+        url = "queues/%s/reservations" % self.name
         qitems = {}
         if max is not None:
             qitems["n"] = max
         if timeout is not None:
             qitems["timeout"] = timeout
-        if wait is not None:
-            qitems["wait"] = wait
-        qs = []
-        for k, v in qitems.items():
-            qs.append("%s=%s" % (k, v))
-        qs = "&".join(qs)
-        if qs != "":
-            url = "%s?%s" % (url, qs)
+        body = json.dumps(qitems)
 
-        result = self.client.get(url)
+        response = self.client.post(url, body=body,
+                                    headers={"Content-Type":"application/json"})
 
-        return result['body']
+        return response['body']
+
 
     def get_message_by_id(self, message_id):
         url = "queues/%s/messages/%s" % (self.name, message_id)
         response = self.client.get(url)
-        return response['body']
+        return response["body"]["message"]
 
     def peek(self, max=None):
-        url = "queues/%s/messages/peek" % self.name
+        url = "queues/%s/messages" % self.name
         if max is not None:
             url = "%s?n=%s" % (url, max)
 
@@ -129,19 +145,38 @@ class Queue:
 
         return response['body']
 
-    def touch(self, message_id):
-        url = "queues/%s/messages/%s/touch" % (self.name, message_id)
+    def touch(self, message_id, reservation_id = None):
+        """Touching a reserved message extends its timeout to the duration specified when the message was created.
 
-        response = self.client.post(url, body=json.dumps({}),
+        Arguments:
+        message_id -- The ID of the message.
+        reservation_id -- Reservation Id of the message. Reserved message could not be deleted without reservation Id.
+        """
+        url = "queues/%s/messages/%s/touch" % (self.name, message_id)
+        qitems = {}
+        if reservation_id is not None:
+            qitems["reservation_id"] = reservation_id
+        body = json.dumps(qitems)
+
+        response = self.client.post(url, body=body,
                                     headers={"Content-Type":"application/json"})
 
         return response['body']
 
-    def release(self, message_id, delay=0):
+    def release(self, message_id, delay=0, reservation_id = None):
+        """Release locked message after specified time. If there is no message with such id on the queue.
+
+        Arguments:
+        message_id -- The ID of the message.
+        delay -- The time after which the message will be released.
+        reservation_id -- Reservation Id of the message. Reserved message could not be deleted without reservation Id.
+        """
         url = "queues/%s/messages/%s/release" % (self.name, message_id)
         body = {}
         if delay > 0:
             body['delay'] = delay
+        if reservation_id is not None:
+            body["reservation_id"] = reservation_id
         body = json.dumps(body)
 
         response = self.client.post(url, body=body,
@@ -264,14 +299,14 @@ class IronMQ:
             options['page'] = page
         if per_page is not None:
             options['per_page'] = per_page
-        
+
         query = urllib.urlencode(options)
         url = "queues"
         if query != "":
             url = "%s?%s" % (url, query)
         result = self.client.get(url)
 
-        return [queue["name"] for queue in result["body"]]
+        return [queue["name"] for queue in result["body"]["queues"]]
 
 
     def queue(self, queue_name):
@@ -282,6 +317,44 @@ class IronMQ:
         """
         return Queue(self, queue_name)
 
+
+    def create_queue(self, queue_name, message_expiration=None, type=None, push=None, alerts=None):
+        options = {}
+        if message_expiration is not None:
+            options["message_expiration"] = message_expiration
+        if type is not None:
+            options["type"] = type
+        if push is not None:
+            options["push"] = push
+        if alerts is not None:
+            options["alerts"] = alerts
+
+        queue = {"queue": options}
+        body = json.dumps(queue)
+        url = "queues/%s" % queue_name
+
+        response = self.client.put(url, body=body, headers={"Content-Type":"application/json"})
+        return response['body']
+
+
+    def update_queue(self, queue_name, message_expiration=None, type=None, push=None, alerts=None):
+        options = {}
+        if message_expiration is not None:
+            options["message_expiration"] = message_expiration
+        if type is not None:
+            options["type"] = type
+        if push is not None:
+            options["push"] = push
+        if alerts is not None:
+            options["alerts"] = alerts
+
+        queue = {"queue": options}
+        body = json.dumps(queue)
+        url = "queues/%s" % queue_name
+
+        response = self.client.request(url = url, method="PATCH", body=body,
+                                       headers={"Content-Type":"application/json"})
+        return response['body']
 
     # DEPRECATED
 
