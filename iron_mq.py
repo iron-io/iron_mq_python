@@ -134,10 +134,10 @@ class Queue:
     def get_message_by_id(self, message_id):
         url = "queues/%s/messages/%s" % (self.name, message_id)
         response = self.client.get(url)
-        return response['body']
+        return response["body"]["message"]
 
     def peek(self, max=None):
-        url = "queues/%s/messages/peek" % self.name
+        url = "queues/%s/messages" % self.name
         if max is not None:
             url = "%s?n=%s" % (url, max)
 
@@ -163,11 +163,20 @@ class Queue:
 
         return response['body']
 
-    def release(self, message_id, delay=0):
+    def release(self, message_id, delay=0, reservation_id = None):
+        """Release locked message after specified time. If there is no message with such id on the queue.
+
+        Arguments:
+        message_id -- The ID of the message.
+        delay -- The time after which the message will be released.
+        reservation_id -- Reservation Id of the message. Reserved message could not be deleted without reservation Id.
+        """
         url = "queues/%s/messages/%s/release" % (self.name, message_id)
         body = {}
         if delay > 0:
             body['delay'] = delay
+        if reservation_id is not None:
+            body["reservation_id"] = reservation_id
         body = json.dumps(body)
 
         response = self.client.post(url, body=body,
@@ -297,7 +306,7 @@ class IronMQ:
             url = "%s?%s" % (url, query)
         result = self.client.get(url)
 
-        return [queue["name"] for queue in result["body"]]
+        return [queue["name"] for queue in result["body"]["queues"]]
 
 
     def queue(self, queue_name):
@@ -308,6 +317,44 @@ class IronMQ:
         """
         return Queue(self, queue_name)
 
+
+    def create_queue(self, queue_name, message_expiration=None, type=None, push=None, alerts=None):
+        options = {}
+        if message_expiration is not None:
+            options["message_expiration"] = message_expiration
+        if type is not None:
+            options["type"] = type
+        if push is not None:
+            options["push"] = push
+        if alerts is not None:
+            options["alerts"] = alerts
+
+        queue = {"queue": options}
+        body = json.dumps(queue)
+        url = "queues/%s" % queue_name
+
+        response = self.client.put(url, body=body, headers={"Content-Type":"application/json"})
+        return response['body']
+
+
+    def update_queue(self, queue_name, message_expiration=None, type=None, push=None, alerts=None):
+        options = {}
+        if message_expiration is not None:
+            options["message_expiration"] = message_expiration
+        if type is not None:
+            options["type"] = type
+        if push is not None:
+            options["push"] = push
+        if alerts is not None:
+            options["alerts"] = alerts
+
+        queue = {"queue": options}
+        body = json.dumps(queue)
+        url = "queues/%s" % queue_name
+
+        response = self.client.request(url = url, method="PATCH", body=body,
+                                       headers={"Content-Type":"application/json"})
+        return response['body']
 
     # DEPRECATED
 

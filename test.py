@@ -161,7 +161,15 @@ class TestIronMQ(unittest.TestCase):
         q = self.mq.queue("test_queue")
         response_post = q.post(body)
         message = q.get_message_by_id(response_post["ids"][0])
-        self.assertEqual(body, message["message"]["body"])
+        self.assertEqual(body, message["body"])
+
+    def test_peekMessages(self):
+        q = self.mq.queue("test_queue")
+        q.clear()
+        q.post("more")
+        q.post("and more")
+        response = q.peek(2)
+        self.assertEqual(2, len(response["messages"]))
 
 if __name__ == '__main__':
     unittest.main()
