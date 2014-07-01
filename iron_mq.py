@@ -76,15 +76,16 @@ class Queue(object):
 
         return result["body"]
 
-    def delete_multiple(self,  *messages):
+    def delete_multiple(self,  ids):
         """Execute an HTTP request to delete messages from queue.
 
         Arguments:
-        messages -- An array of messages to be deleted from the queue.
+        ids -- A list of messages to be deleted from the queue. [{ "id": "xxxxxxxxx", "reservation_id": "xxxxxxxxx"}]
+  ]
         """
         url = "queues/%s/messages" % self.name
 
-        data = json.dumps({"ids": messages})
+        data = json.dumps({"ids": ids})
         result = self.client.delete(url=url, body=data,
                                   headers={"Content-Type":"application/json"})
         return result["body"]
@@ -213,11 +214,13 @@ class Queue(object):
 
         return response['body']
 
-    def add_alerts(self, *alerts):
-        url = "queues/%s/alerts" % self.name
-        body = json.dumps({'alerts': alerts})
-        response = self.client.post(url, body=body, headers={"Content-Type":"application/json"})
-        return response['body']
+    def add_alerts(self, alerts):
+        body = json.dumps({"queue": {"alerts": alerts}})
+        url = "queues/%s" % self.name
+
+        response = self.client.patch(url = url, body=body,
+                                       headers={"Content-Type":"application/json"})
+        return response['body']['queue']
 
     def update_alerts(self, *alerts):
         url = "queues/%s/alerts" % self.name
@@ -325,8 +328,10 @@ class IronMQ(object):
         return Queue(self, queue_name)
 
 
-    def create_queue(self, queue_name, message_expiration=None, type=None, push=None, alerts=None):
+    def create_queue(self, queue_name, message_timeout=None, message_expiration=None, type=None, push=None, alerts=None):
         options = {}
+        if message_timeout is not None:
+            options["message_timeout"] = message_timeout
         if message_expiration is not None:
             options["message_expiration"] = message_expiration
         if type is not None:
@@ -336,16 +341,17 @@ class IronMQ(object):
         if alerts is not None:
             options["alerts"] = alerts
 
-        queue = {"queue": options}
-        body = json.dumps(queue)
+        body = json.dumps({"queue": options})
         url = "queues/%s" % queue_name
 
         response = self.client.put(url, body=body, headers={"Content-Type":"application/json"})
         return response['body']
 
 
-    def update_queue(self, queue_name, message_expiration=None, type=None, push=None, alerts=None):
+    def update_queue(self, queue_name, message_timeout=None, message_expiration=None, type=None, push=None, alerts=None):
         options = {}
+        if message_timeout is not None:
+            options["message_timeout"] = message_timeout
         if message_expiration is not None:
             options["message_expiration"] = message_expiration
         if type is not None:
@@ -355,11 +361,10 @@ class IronMQ(object):
         if alerts is not None:
             options["alerts"] = alerts
 
-        queue = {"queue": options}
-        body = json.dumps(queue)
+        body = json.dumps({"queue": options})
         url = "queues/%s" % queue_name
 
-        response = self.client.request(url = url, method="PATCH", body=body,
+        response = self.client.patch(url = url, body=body,
                                        headers={"Content-Type":"application/json"})
         return response['body']
 
