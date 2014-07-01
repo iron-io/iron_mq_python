@@ -18,7 +18,7 @@ class TestIronMQ(unittest.TestCase):
 
     def test_addAlerts(self):
         q = self.mq.queue("test_queue" + self.random_number)
-        result = q.add_alerts({'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'})
+        result = q.add_alerts([{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}])
         self.assertEqual(result['msg'], 'Updated')
 
     def test_updateAlerts(self):
@@ -28,7 +28,8 @@ class TestIronMQ(unittest.TestCase):
 
     def test_infoShouldReturnAlerts(self):
         q = self.mq.queue("test_queue" + self.random_number)
-        q.add_alerts({'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'})
+        fixed_alert = {'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}
+        q.add_alerts([fixed_alert])
         info = q.info()
         self.assertTrue('alerts' in info)
         self.assertEqual(len(info['alerts']), 1)
@@ -132,6 +133,7 @@ class TestIronMQ(unittest.TestCase):
 
         name = 'test_queue'
         q = self.mq.queue(name)
+        q.clear()
 
         self.assertEqual('Cleared', self.mq.clearQueue(name)['msg'])
 
@@ -145,15 +147,17 @@ class TestIronMQ(unittest.TestCase):
         resp = self.mq.getMessage(name)
         self.assertEqual(msg_id, resp['messages'][-1]['id'])
 
-        self.assertEqual('Deleted', self.mq.deleteMessage(name, msg_id)['msg'])
-
     def test_postAndDeleteMultipleMessages(self):
         q = self.mq.queue("test_queue")
+        q.clear()
         old_size = q.size()
-        msg = q.post("more", "and more")
+        q.post("more", "and more")
+        response = q.reserve(2, 60)
         self.assertEqual(old_size, q.size() - 2)
-
-        q.delete_multiple(msg["ids"][0],msg["ids"][1])
+        ids = list()
+        for item in response["messages"]:
+            ids.append({"reservation_id": item["reservation_id"], "id": item["id"]})
+        q.delete_multiple(ids)
         self.assertEqual(old_size, q.size())
 
     def test_getMessageById(self):
@@ -166,8 +170,7 @@ class TestIronMQ(unittest.TestCase):
     def test_peekMessages(self):
         q = self.mq.queue("test_queue")
         q.clear()
-        q.post("more")
-        q.post("and more")
+        q.post("more", "and more")
         response = q.peek(2)
         self.assertEqual(2, len(response["messages"]))
 
