@@ -7,7 +7,7 @@ import time
 class TestIronMQ(unittest.TestCase):
 
     def setUp(self):
-        self.mq = IronMQ()
+        self.mq =  IronMQ()
         self.random_number = str(int(random.random() * 10**10))
 
     def test_postMessage(self):
@@ -17,39 +17,46 @@ class TestIronMQ(unittest.TestCase):
         self.assertEqual(old_size, q.size() - 1)
 
     def test_addAlerts(self):
-        q = self.mq.queue("test_queue" + self.random_number)
-        result = q.add_alerts([{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}])
-        self.assertEqual(result['msg'], 'Updated')
-
-    def test_updateAlerts(self):
         q = self.mq.queue("test_queue")
-        result = q.update_alerts({'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'})
-        self.assertEqual(result['msg'], 'Updated')
+        q.clear()
+        fixed_alert = [{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}]
+        response = q.add_alerts(fixed_alert)
+        self.assertTrue("alerts" in response)
+
 
     def test_infoShouldReturnAlerts(self):
-        q = self.mq.queue("test_queue" + self.random_number)
-        fixed_alert = {'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}
-        q.add_alerts([fixed_alert])
+        q = self.mq.queue("test_queue")
+        q.clear()
+        fixed_alert = [{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}]
+        q.add_alerts(fixed_alert)
         info = q.info()
         self.assertTrue('alerts' in info)
         self.assertEqual(len(info['alerts']), 1)
 
     def test_removeAlerts(self):
-        q = self.mq.queue("test_queue" + self.random_number)
-        q.add_alerts({'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}, {'type': 'fixed', 'direction': 'asc', 'trigger': 10000, 'queue': 'a_q'}, {'type': 'progressive', 'direction': 'asc', 'trigger': 500, 'queue': 'a_q'})
-        alerts = [alert['id'] for alert in q.info()['alerts']][0:2]
-        last_alert = q.info()['alerts'][2]
-        result = q.remove_alerts(*alerts)
-        self.assertEqual(result['msg'], 'Deleted')
-        self.assertEqual(len(q.info()['alerts']), 1)
-        self.assertEqual(q.info()['alerts'][0]['id'], last_alert['id'])
+        q = self.mq.queue("test_queue")
+        q.clear()
+        fixed_alerts = [{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}, {'type': 'fixed', 'direction': 'asc', 'trigger': 10000, 'queue': 'a_q'}, {'type': 'progressive', 'direction': 'asc', 'trigger': 500, 'queue': 'a_q'}]
+        response = q.add_alerts(fixed_alerts)
+        self.assertEqual(len(response["alerts"]), len(fixed_alerts))
+        result = q.remove_alerts()
+        self.assertEqual(len(result["alerts"]), 1)
 
-    def test_removeAlert(self):
-        q = self.mq.queue("test_queue" + self.random_number)
-        q.add_alerts({'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}, {'type': 'fixed', 'direction': 'asc', 'trigger': 10000, 'queue': 'a_q'})
-        result = q.remove_alert(q.info()['alerts'][0]['id'])
-        self.assertEqual(result['msg'], 'Deleted')
-        self.assertEqual(len(q.info()['alerts']), 1)
+    def test_addSubscribers(self):
+        q = self.mq.queue("test_queue%s" % time.time())
+        q.clear()
+        subscribers = [{"url": "http://mysterious-brook-1807.herokuapp.com/ironmq_push_1"}, {"url": "http://mysterious-brook-1807.herokuapp.com/ironmq_push_1"}]
+        response = q.add_subscribers(subscribers)
+        self.assertEqual(len(subscribers), len(response["push"]["subscribers"]))
+
+    def test_removeSubscribers(self):
+        q = self.mq.queue("test_queue%s" % time.time())
+        q.clear()
+        subscribers = [{"url": "http://mysterious-brook-1807.herokuapp.com/ironmq_push_1"}, {"url": "http://mysterious-brook-1807.herokuapp.com/ironmq_push_1"}]
+        response = q.add_subscribers(subscribers)
+        self.assertEqual(len(subscribers), len(response["push"]["subscribers"]))
+        result = q.remove_subscribers()
+        self.assertEqual(len(result["push"]["subscribers"]), 1)
 
     def test_getMessage(self):
         msg = "%s" % time.time()
