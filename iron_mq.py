@@ -222,40 +222,50 @@ class Queue(object):
                                        headers={"Content-Type":"application/json"})
         return response['body']['queue']
 
-    def update_alerts(self, *alerts):
-        url = "queues/%s/alerts" % self.name
-        body = json.dumps({'alerts': alerts})
-        response = self.client.put(url, body=body, headers={"Content-Type":"application/json"})
-        return response['body']
+    def update_alerts(self, alerts):
+        self.add_alerts(alerts)
 
-    def remove_alerts(self, *alert_ids):
-        url = "queues/%s/alerts" % self.name
-        body = json.dumps(self._prepare_alert_ids(*alert_ids))
-        response = self.client.delete(url, body=body, headers={"Content-Type":"application/json"})
-        return response['body']
+    def remove_alerts(self):
+        body = json.dumps({"queue": {"alerts": [{}]}})
+        url = "queues/%s" % self.name
+
+        response = self.client.patch(url = url, body=body,
+                                       headers={"Content-Type":"application/json"})
+        return response['body']['queue']
 
     def remove_alert(self, alert_id):
         url = "queues/%s/alerts/%s" % (self.name, alert_id)
         response = self.client.delete(url, body={}, headers={"Content-Type":"application/json"})
         return response['body']
 
-    def add_subscribers(self, *subscribers):
-        url = "queues/%s/subscribers" % self.name
-        body = json.dumps(self._prepare_subscribers(*subscribers))
+    def add_subscribers(self, subscribers, type=None, retries=None, retries_delay=None, error_queue=None):
+        options = {}
+        options["subscribers"] = subscribers
+        if retries is not None:
+            options["retries"] = retries
+        if retries_delay is not None:
+            options["retries_delay"] = retries_delay
+        if error_queue is not None:
+            options["error_queue"] = error_queue
+        queue = {}
+        if type is not None:
+             queue["type"] = type
+        queue["push"] = options
 
-        response = self.client.post(url, body=body,
-                                    headers={"Content-Type":"application/json"})
+        body = json.dumps({"queue": queue})
+        url = "queues/%s" % self.name
 
-        return response['body']
+        response = self.client.put(url = url, body=body,
+                                       headers={"Content-Type":"application/json"})
+        return response['body']['queue']
 
-    def remove_subscribers(self, *subscribers):
-        url = "queues/%s/subscribers" % self.name
-        body = json.dumps(self._prepare_subscribers(*subscribers))
+    def remove_subscribers(self):
+        body = json.dumps({"queue": {"push": {"subscribers": [{}]}}})
+        url = "queues/%s" % self.name
 
-        response = self.client.delete(url, body=body,
-                                      headers={"Content-Type":"application/json"})
-
-        return response['body']
+        response = self.client.put(url = url, body=body,
+                                       headers={"Content-Type":"application/json"})
+        return response['body']['queue']
 
     def get_message_push_statuses(self, message_id):
         url = "queues/%s/messages/%s/subscribers" % (self.name, message_id)
@@ -283,6 +293,7 @@ class Queue(object):
 class IronMQ(object):
     NAME = "iron_mq_python"
     VERSION = "0.5"
+    API_VERSION = 3
     client = None
     name = None
 
@@ -293,11 +304,13 @@ class IronMQ(object):
         documentation for a full list and possible values."""
         if name is not None:
             self.name = name
+        kwargs["api_version"] = kwargs.get("api_version") or IronMQ.API_VERSION
+
         self.client = iron_core.IronClient(name=IronMQ.NAME,
                 version=IronMQ.VERSION, product="iron_mq", **kwargs)
 
 
-    def queues(self, page=None, per_page=None):
+    def queues(self, page=None, per_page=None, previous=None, prefix=None):
         """Execute an HTTP request to get a list of queues and return it.
 
         Keyword arguments:
@@ -306,9 +319,13 @@ class IronMQ(object):
         """
         options = {}
         if page is not None:
-            options['page'] = page
+            raise Exception("page param is deprecated!")
         if per_page is not None:
             options['per_page'] = per_page
+        if previous is not None:
+            options['previous'] = previous
+        if prefix is not None:
+            options['prefix'] = prefix
 
         query = urllib.urlencode(options)
         url = "queues"
