@@ -79,7 +79,7 @@ class Queue:
         url = "queues/%s/messages" % self.name
 
         items = None
-        if ids is not None and messages is not None:
+        if ids is None and messages is None:
              raise Exception("Please, specify at least one parameter.")
         if ids is not None:
            items = map(lambda item: {"id": item}, ids)
@@ -222,7 +222,7 @@ class Queue:
 
         return response['body']
 
-    def add_alerts(self, alerts):
+    def add_alerts(self, *alerts):
         body = json.dumps({"queue": {"alerts": alerts}})
         url = "queues/%s" % self.name
 
@@ -230,8 +230,8 @@ class Queue:
                                        headers={"Content-Type":"application/json"})
         return response['body']['queue']
 
-    def update_alerts(self, alerts):
-        self.add_alerts(alerts)
+    def update_alerts(self, *alerts):
+        self.add_alerts(*alerts)
 
     def remove_alerts(self):
         body = json.dumps({"queue": {"alerts": [{}]}})
@@ -248,7 +248,7 @@ class Queue:
 
     def add_subscribers(self, subscribers, type=None, retries=None, retries_delay=None, error_queue=None):
         options = {}
-        options["subscribers"] = subscribers
+        options.update(self._prepare_subscribers(*subscribers))
         if retries is not None:
             options["retries"] = retries
         if retries_delay is not None:
@@ -353,7 +353,7 @@ class IronMQ:
         return Queue(self, queue_name)
 
 
-    def create_queue(self, queue_name, message_timeout=None, message_expiration=None, type=None, push=None, alerts=None):
+    def create_queue(self, queue_name, message_timeout=None, message_expiration=None, type=None, subscribers=None, alerts=None):
         options = {}
         if message_timeout is not None:
             options["message_timeout"] = message_timeout
@@ -361,8 +361,8 @@ class IronMQ:
             options["message_expiration"] = message_expiration
         if type is not None:
             options["type"] = type
-        if push is not None:
-            options["push"] = push
+        if subscribers is not None:
+            options["push"] = self._prepare_subscribers(*subscribers)
         if alerts is not None:
             options["alerts"] = alerts
 
@@ -373,7 +373,7 @@ class IronMQ:
         return response['body']
 
 
-    def update_queue(self, queue_name, message_timeout=None, message_expiration=None, type=None, push=None, alerts=None):
+    def update_queue(self, queue_name, message_timeout=None, message_expiration=None, type=None, subscribers=None, alerts=None):
         options = {}
         if message_timeout is not None:
             options["message_timeout"] = message_timeout
@@ -381,8 +381,8 @@ class IronMQ:
             options["message_expiration"] = message_expiration
         if type is not None:
             options["type"] = type
-        if push is not None:
-            options["push"] = push
+        if subscribers is not None:
+            options["push"] = self._prepare_subscribers(*subscribers)
         if alerts is not None:
             options["alerts"] = alerts
 
@@ -392,6 +392,11 @@ class IronMQ:
         response = self.client.patch(url = url, body=body,
                                        headers={"Content-Type":"application/json"})
         return response['body']
+
+
+    def _prepare_subscribers(self, *subscribers):
+        subscrs = [{'url': ss} for ss in subscribers]
+        return {'subscribers': subscrs}
 
     # DEPRECATED
 

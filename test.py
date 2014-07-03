@@ -20,7 +20,7 @@ class TestIronMQ(unittest.TestCase):
         q = self.mq.queue("test_queue")
         q.clear()
         fixed_alert = [{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}]
-        response = q.add_alerts(fixed_alert)
+        response = q.add_alerts(*fixed_alert)
         self.assertTrue("alerts" in response)
 
 
@@ -28,7 +28,7 @@ class TestIronMQ(unittest.TestCase):
         q = self.mq.queue("test_queue")
         q.clear()
         fixed_alert = [{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}]
-        q.add_alerts(fixed_alert)
+        q.add_alerts(*fixed_alert)
         info = q.info()
         self.assertTrue('alerts' in info)
         self.assertEqual(len(info['alerts']), 1)
