@@ -63,7 +63,7 @@ Message can be described by dict:
 ```python
 message = {
     "body" : "Test Message",
-    ~~~"timeout" : 120,~~~ # Timeout, in seconds. After timeout, item will be placed back on queue. Defaults to 60.
+    "timeout" : 120, # Timeout, in seconds. After timeout, item will be placed back on queue. Defaults to 60.
     "delay" : 5, # The item will not be available on the queue until this many seconds have passed. Defaults to 0.
     "expires_in" : 2*24*3600 # How long, in seconds, to keep the item on the queue before it is deleted.
 }
@@ -87,6 +87,7 @@ All fields are optional.
 - timeout:  After timeout (in seconds), item will be placed back onto queue. You must delete the message from the queue to ensure it does not go back onto the queue. If not set, value from queue is used. Default is 60 seconds, minimum is 30 seconds, and maximum is 86,400 seconds (24 hours).
 - wait: Time to long poll for messages, in seconds. Max is 30 seconds. Default 0.
 - delete: If true, do not put each message back on to the queue after reserving. Default false.
+
 When you reserve a message from the queue, it will NOT be deleted.
 It will eventually go back onto the queue after a timeout if you don't delete it (default timeout is 60 seconds).
 
@@ -153,7 +154,7 @@ To extend the reservation on a reserved message, use touch. The message reservat
 ```python
 queue.touch(msg_id, reservation_id="xxxxxxxx")
 ```
-- msg_id: message id.
+- msg_id: Message id.
 - reservation_id: Reservation id of the message.
 
 ### Release a reserved message
