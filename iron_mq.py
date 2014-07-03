@@ -76,16 +76,25 @@ class Queue(object):
 
         return result["body"]
 
-    def delete_multiple(self,  ids):
+    def delete_multiple(self, ids=None, messages=None):
         """Execute an HTTP request to delete messages from queue.
 
         Arguments:
-        ids -- A list of messages to be deleted from the queue. [{ "id": "xxxxxxxxx", "reservation_id": "xxxxxxxxx"}]
-  ]
+        ids -- A list of messages id to be deleted from the queue.
+  ]     messages -- Response to message reserving.
         """
         url = "queues/%s/messages" % self.name
 
-        data = json.dumps({"ids": ids})
+        items = None
+        if ids is not None and messages is not None:
+             raise Exception("Please, specify at least one parameter.")
+        if ids is not None:
+           items = map(lambda item: {"id": item}, ids)
+        if messages is not None:
+           items = map(lambda item: {"id": item["id"] ,"reservation_id": item["reservation_id"]}, messages["messages"])
+
+        data = json.dumps({"ids": items})
+
         result = self.client.delete(url=url, body=data,
                                   headers={"Content-Type":"application/json"})
         return result["body"]
@@ -109,7 +118,7 @@ class Queue(object):
         return result['body']
 
     def get(self, max=None, timeout=None, wait=None):
-        """Deprecated. User Queue.reserve() instead. Executes an HTTP request to get a message off of a queue.
+        """Deprecated. Use Queue.reserve() instead. Executes an HTTP request to get a message off of a queue.
 
         Keyword arguments:
         max -- The maximum number of messages to pull. Defaults to 1.
@@ -118,12 +127,14 @@ class Queue(object):
         return response
 
 
-    def reserve(self, max=None, timeout=None):
+    def reserve(self, max=None, timeout=None, wait=None, delete=None):
         """Retrieves Messages from the queue and reserves it.
 
         Arguments:
         max -- The maximum number of messages to reserve. Defaults to 1.
         timeout -- Timeout in seconds.
+        wait -- Time to long poll for messages, in seconds. Max is 30 seconds. Default 0.
+        delete -- If true, do not put each message back on to the queue after reserving. Default false.
         """
         url = "queues/%s/reservations" % self.name
         qitems = {}
@@ -131,6 +142,10 @@ class Queue(object):
             qitems["n"] = max
         if timeout is not None:
             qitems["timeout"] = timeout
+        if wait is not None:
+            qitems["wait"] = wait
+        if delete is not None:
+            qitems["delete"] = delete
         body = json.dumps(qitems)
 
         response = self.client.post(url, body=body,

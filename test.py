@@ -158,13 +158,19 @@ class TestIronMQ(unittest.TestCase):
         q = self.mq.queue("test_queue")
         q.clear()
         old_size = q.size()
-        q.post("more", "and more")
-        response = q.reserve(2, 60)
+        ids = q.post("more", "and more")["ids"]
         self.assertEqual(old_size, q.size() - 2)
-        ids = list()
-        for item in response["messages"]:
-            ids.append({"reservation_id": item["reservation_id"], "id": item["id"]})
-        q.delete_multiple(ids)
+        q.delete_multiple(ids=ids)
+        self.assertEqual(old_size, q.size())
+
+    def test_deleteMultipleReservedMessages(self):
+        q = self.mq.queue("test_queue")
+        q.clear()
+        old_size = q.size()
+        q.post("more", "and more")
+        messages = q.reserve(2, 60)
+        self.assertEqual(old_size, q.size() - 2)
+        q.delete_multiple(messages=messages)
         self.assertEqual(old_size, q.size())
 
     def test_getMessageById(self):
