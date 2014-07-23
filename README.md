@@ -188,7 +188,7 @@ ironmq.create_queue("queue_name", message_timeout=60, message_expiration=3600, t
 To update the queue's subscribers, use update:
 
 ```python
-queue.update(subscribers=["http://endpoint1.com", "https://end.point.com/2"], type="unicast")
+queue.update(subscribers=["http://endpoint1.com", "https://end.point.com/2"])
 ```
 
 ### Add subscribers to a push queue
