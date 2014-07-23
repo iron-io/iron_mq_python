@@ -208,11 +208,11 @@ class Queue:
                 body.update(self._prepare_subscribers(*subscribers))
             else:
                 body['subscribers'] = [{'url': subscribers}]
-        body = json.dumps(body)
 
-        response = self.client.post(url, body=body,
-                                    headers={"Content-Type":"application/json"})
+        body = json.dumps({"queue": body})
 
+        response = self.client.patch(url, body=body,
+                                     headers={"Content-Type":"application/json"})
         return response['body']
 
     def delete_queue(self):
