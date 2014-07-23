@@ -174,9 +174,18 @@ queue.delete_queue()
 
 ## Push Queues
 
+### Create a push queue
+
+Push queues must be explicitly created. There's no changing a queue's type.
+
+```python
+subscribers=["http://endpoint1.com", "https://end.point.com/2"]
+ironmq.create_queue("queue_name", message_timeout=60, message_expiration=3600, type="unicast", subscribers=subscribers)
+```
+
 ### Update Queue Information
 
-To update the queue's push type and subscribers, use update:
+To update the queue's subscribers, use update:
 
 ```python
 queue.update(subscribers=["http://endpoint1.com", "https://end.point.com/2"], type="unicast")
