@@ -177,6 +177,10 @@ queue.delete_queue()
 ### Create a push queue
 
 Push queues must be explicitly created. There's no changing a queue's type.
+type can be one of: `[multicast, unicast, pull]` where `multicast` and `unicast` define push queues, default is `pull`.
+If push field is defined, this queue will be created as a push queue and must contain at least one subscriber. Everything else in the push map is optional.
+A push queue cannot have alerts.
+All fields are optional.
 
 ```python
 subscribers=["http://endpoint1.com", "https://end.point.com/2"]
