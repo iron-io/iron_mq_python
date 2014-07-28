@@ -154,7 +154,7 @@ class Queue:
     # 1) a url string
     # 2) a tuple of (url, headers)
     # 3) a list of url strings or tuples
-    # headers must be in format: {'Example':'Header'}
+    # headers must be in the format: {'Example':'Header'}
     def update(self, subscribers=None, **kwargs):
         url = "queues/%s" % self.name
         body = kwargs
