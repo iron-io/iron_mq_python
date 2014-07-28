@@ -150,11 +150,10 @@ class Queue:
 
         return response['body']
 
-    # Subscribers may now be:
+    # Subscribers can be:
     # 1) a url string
-    # 2) a tuple of (url, headers)
-    # 3) a list of url strings or tuples
-    # headers must be in the format: {'Example':'Header'}
+    # 2) a dict of {'url': 'url.com', 'headers': {'Content-Type': 'plain/text'}}
+    # 3) a list of url strings or dicts
     def update(self, subscribers=None, **kwargs):
         url = "queues/%s" % self.name
         body = kwargs
@@ -162,8 +161,8 @@ class Queue:
             if isinstance(subscribers, list):
                 body.update(self._prepare_subscribers(*subscribers))
             else:
-                if isinstance(subscribers, tuple):
-                    body['subscribers'] = [{'url': subscribers[0], 'headers': subscribers[1]}]
+                if isinstance(subscribers, dict):
+                    body['subscribers'] = [subscribers]
                 else:
                     body['subscribers'] = [{'url': subscribers}]
         body = json.dumps(body)
@@ -240,10 +239,10 @@ class Queue:
     def _prepare_subscribers(self, *subscribers):
         subscrs = []
         for ss in subscribers:
-            if isinstance(ss, tuple):
-                subscrs.append({'url': ss[0], 'headers': ss[1]})
+            if isinstance(ss, dict):
+                subscrs.append(ss)
             else:
-                subscrs.appen({'url': ss})
+                subscrs.append({'url': ss})
 
         return {'subscribers': subscrs}
 
