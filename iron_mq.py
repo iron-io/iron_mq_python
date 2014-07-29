@@ -5,6 +5,7 @@ try:
 except:
     import simplejson as json
 
+
 class Queue:
     client = None
     name = None
@@ -66,7 +67,7 @@ class Queue:
         messages -- An array of messages to be deleted from the queue.
         """
         url = "queues/%s/messages" % self.name
-        
+
         data = json.dumps({"ids": messages})
         result = self.client.delete(url=url, body=data,
                                   headers={"Content-Type":"application/json"})
@@ -149,6 +150,10 @@ class Queue:
 
         return response['body']
 
+    # Subscribers can be:
+    # 1) a url string
+    # 2) a dict of {'url': 'url.com', 'headers': {'Content-Type': 'plain/text'}}
+    # 3) a list of url strings or dicts
     def update(self, subscribers=None, **kwargs):
         url = "queues/%s" % self.name
         body = kwargs
@@ -156,12 +161,13 @@ class Queue:
             if isinstance(subscribers, list):
                 body.update(self._prepare_subscribers(*subscribers))
             else:
-                body['subscribers'] = [{'url': subscribers}]
+                if isinstance(subscribers, dict):
+                    body['subscribers'] = [subscribers]
+                else:
+                    body['subscribers'] = [{'url': subscribers}]
         body = json.dumps(body)
-
         response = self.client.post(url, body=body,
                                     headers={"Content-Type":"application/json"})
-
         return response['body']
 
     def delete_queue(self):
@@ -231,9 +237,15 @@ class Queue:
         return {'alerts': alerts}
 
     def _prepare_subscribers(self, *subscribers):
-        subscrs = [{'url': ss} for ss in subscribers]
+        subscrs = []
+        for ss in subscribers:
+            if isinstance(ss, dict):
+                subscrs.append(ss)
+            else:
+                subscrs.append({'url': ss})
 
         return {'subscribers': subscrs}
+
 
 class IronMQ:
     NAME = "iron_mq_python"
@@ -251,7 +263,6 @@ class IronMQ:
         self.client = iron_core.IronClient(name=IronMQ.NAME,
                 version=IronMQ.VERSION, product="iron_mq", **kwargs)
 
-
     def queues(self, page=None, per_page=None):
         """Execute an HTTP request to get a list of queues and return it.
 
@@ -264,7 +275,7 @@ class IronMQ:
             options['page'] = page
         if per_page is not None:
             options['per_page'] = per_page
-        
+
         query = urllib.urlencode(options)
         url = "queues"
         if query != "":
@@ -273,7 +284,6 @@ class IronMQ:
 
         return [queue["name"] for queue in result["body"]]
 
-
     def queue(self, queue_name):
         """Returns Queue object.
 
@@ -281,7 +291,6 @@ class IronMQ:
         queue_name -- The name of the queue.
         """
         return Queue(self, queue_name)
-
 
     # DEPRECATED
 
