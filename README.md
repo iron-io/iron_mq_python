@@ -30,10 +30,10 @@ ironmq = IronMQ()
 will try reasonable defaults, accepting following optionally:
 
 ```
-ironmq = IronMQ(host="mq-aws-us-east-1.iron.io",
-                project_id="500f7b....b0f302e9",
-                token="Et1En7.....0LuW39Q",
-                protocol="https", port=443,
+ironmq = IronMQ(host='mq-aws-us-east-1.iron.io',
+                project_id='500f7b....b0f302e9',
+                token='Et1En7.....0LuW39Q',
+                protocol='https', port=443,
                 api_version=1,
                 config_file=None)
 ```
@@ -49,13 +49,13 @@ returns list of queues names
 
 we get queue by name:
 ```python
-queue = ironmq.queue("test_queue")
+queue = ironmq.queue('test_queue')
 ```
 
 ### **Push** a message(s) on the queue:
 
 ```python
-queue.post("Hello world")
+queue.post('Hello world')
 ```
 
 Message can be described by dict:
@@ -73,7 +73,7 @@ Can no longer set timeout when posting a message, only when reserving one.
 
 We can post several messages at once:
 ```python
-queue.post("more", "and more", "and more")
+queue.post('more', 'and more', 'and more')
 queue.post(*[str(i) for i in range(10)])
 ```
 
@@ -94,7 +94,7 @@ It will eventually go back onto the queue after a timeout if you don't delete it
 
 ### Get message by id
 ```python
-queue.get_message_by_id("xxxxxxxx")
+queue.get_message_by_id('xxxxxxxx')
 ```
 
 ### **Delete** a message from the queue:
@@ -110,7 +110,7 @@ Reserved message could not be deleted without reservation id.
 Delete multiple messages in one API call:
 
 ```python
-ids = queue.post("more", "and more", "and more")["ids"]
+ids = queue.post('more', 'and more', 'and more')['ids']
 queue.delete_multiple(ids = ids);
 ```
 Delete multiple messages specified by messages id.
@@ -152,7 +152,7 @@ msgs = queue.peek(max=10) # {"messages": [{'id': '..', 'body': '..'}, ..]}
 To extend the reservation on a reserved message, use touch. The message reservation will be extended by the message's `timeout`.
 
 ```python
-queue.touch(msg_id, reservation_id="xxxxxxxx")
+queue.touch(msg_id, reservation_id='xxxxxxxx')
 ```
 - msg_id: Message id.
 - reservation_id: Reservation id of the message.
@@ -161,43 +161,58 @@ queue.touch(msg_id, reservation_id="xxxxxxxx")
 To release a message that is currently reserved by reservation id, use release:
 
 ```python
-queue.release(reservation_id="xxxxxxxx", delay=30) # message will be released after delay seconds, 0 by defaults
-```
-
-### Delete a queue
-
-To delete a queue, use `delete_queue`:
-
-```python
-queue.delete_queue()
+queue.release(reservation_id='xxxxxxxx', delay=30) # message will be released after delay seconds, 0 by defaults
 ```
 
 ## Push Queues
 
-### Create a push queue
-
-Push queues must be explicitly created. There's no changing a queue's type.
-
-`type` can be one of: `[multicast, unicast, pull]` where `multicast` and `unicast` define push queues, default is `pull`.
-
-If `push` field is defined, this queue will be created as a push queue and must contain at least one subscriber. Everything else in the push map is optional.
-
-A push queue cannot have alerts.
-
-All fields are optional.
+### Create queue
 
 ```python
-subscribers=["http://endpoint1.com", "https://end.point.com/2"]
-ironmq.create_queue("queue_name", message_timeout=60, message_expiration=3600, type="unicast", subscribers=subscribers)
+ironmq = IronMQ()
+options = {
+  'message_timeout': 120,
+  'message_expiration': 24 * 3600,
+  'push': {
+    'subscribers': [
+      {
+        'name': 'subscriber_name',
+        'url': 'http://rest-test.iron.io/code/200?store=key1',
+        'headers': {
+          'Content-Type': 'application/json'
+        }
+      }
+    ],
+    'retries': 3,
+    'retries_delay': 30,
+    'error_queue': 'error_queue_name'
+  }
+}
+ironmq.create_queue('queue_name', options)
 ```
+
+**Options:**
+
+* `type`: String or symbol. Queue type. `:pull`, `:multicast`, `:unicast`. Field required and static.
+* `message_timeout`: Integer. Number of seconds before message back to queue if it will not be deleted or touched.
+* `message_expiration`: Integer. Number of seconds between message post to queue and before message will be expired.
+
+**Push queues only:**
+
+* `push: subscribers`: An array of subscriber hashes containing a `name` and a `url` required fields,
+and optional `headers` hash. `headers`'s keys are names and values are means of HTTP headers.
+This set of subscribers will replace the existing subscribers.
+To add or remove subscribers, see the add subscribers endpoint or the remove subscribers endpoint.
+See below for example json.
+* `push: retries`: How many times to retry on failure. Default is 3. Maximum is 100.
+* `push: retries_delay`: Delay between each retry in seconds. Default is 60.
+* `push: error_queue`: String. Queue name to post push errors to.
+
+--
 
 ### Update Queue Information
 
-To update the queue's subscribers, use update:
-
-```python
-queue.update(subscribers=["http://endpoint1.com", "https://end.point.com/2"])
-```
+Same as create queue
 
 ### Add subscribers to a push queue
 
@@ -254,53 +269,13 @@ q.remove_alerts()
 q.remove_alert('5305d3b5a3e920763013c796')
 ```
 
-### Create queue
+### Delete a queue
+
+To delete a queue, use `delete_queue`:
 
 ```python
-ironmq = IronMQ()
-options = {
-  'message_timeout': 120,
-  'message_expiration': 24 * 3600,
-  'push': {
-    'subscribers': [
-      {
-        'name': 'subscriber_name',
-        'url': 'http://rest-test.iron.io/code/200?store=key1',
-        'headers': {
-          'Content-Type': 'application/json'
-        }
-      }
-    ],
-    'retries': 3,
-    'retries_delay': 30,
-    'error_queue': 'error_queue_name'
-  }
-}
-ironmq.create_queue('queue_name', options)
+queue.delete_queue()
 ```
-
-**Options:**
-
-* `type`: String or symbol. Queue type. `:pull`, `:multicast`, `:unicast`. Field required and static.
-* `message_timeout`: Integer. Number of seconds before message back to queue if it will not be deleted or touched.
-* `message_expiration`: Integer. Number of seconds between message post to queue and before message will be expired.
-
-**Push queues only:**
-
-* `push: subscribers`: An array of subscriber hashes containing a `name` and a `url` required fields,
-and optional `headers` hash. `headers`'s keys are names and values are means of HTTP headers.
-This set of subscribers will replace the existing subscribers.
-To add or remove subscribers, see the add subscribers endpoint or the remove subscribers endpoint.
-See below for example json.
-* `push: retries`: How many times to retry on failure. Default is 3. Maximum is 100.
-* `push: retries_delay`: Delay between each retry in seconds. Default is 60.
-* `push: error_queue`: String. Queue name to post push errors to.
-
---
-
-### Update queue
-
-Same as create queue
 
 # Full Documentation
 
