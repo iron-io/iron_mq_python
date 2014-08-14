@@ -258,13 +258,45 @@ q.remove_alert('5305d3b5a3e920763013c796')
 
 ```python
 ironmq = IronMQ()
-alerts = [{"type": "fixed", "trigger": 100, "direction": "asc", "queue": "target_queue_name", "snooze": 60}]
-subscribers = ["http://endpoint1.com", "https://end.point.com/2"]
-ironmq.create_queue('queue_name', message_timeout=60, message_expiration=3600, type='unicast',subscribers=subscribers, alerts=alerts)
+options = {
+  'message_timeout': 120,
+  'message_expiration': 24 * 3600,
+  'push': {
+    'subscribers': [
+      {
+        'name': 'subscriber_name',
+        'url': 'http://rest-test.iron.io/code/200?store=key1',
+        'headers': {
+          'Content-Type': 'application/json'
+        }
+      }
+    ],
+    'retries': 3,
+    'retries_delay': 30,
+    'error_queue': 'error_queue_name'
+  }
+}
+ironmq.create_queue('queue_name', options)
 ```
-All fields are optional.
 
-`type` can be one of: [`multicast`, `unicast`, `pull`] where `multicast` and `unicast` define push queues. default is `pull`
+**Options:**
+
+* `type`: String or symbol. Queue type. `:pull`, `:multicast`, `:unicast`. Field required and static.
+* `message_timeout`: Integer. Number of seconds before message back to queue if it will not be deleted or touched.
+* `message_expiration`: Integer. Number of seconds between message post to queue and before message will be expired.
+
+**Push queues only:**
+
+* `push: subscribers`: An array of subscriber hashes containing a `name` and a `url` required fields,
+and optional `headers` hash. `headers`'s keys are names and values are means of HTTP headers.
+This set of subscribers will replace the existing subscribers.
+To add or remove subscribers, see the add subscribers endpoint or the remove subscribers endpoint.
+See below for example json.
+* `push: retries`: How many times to retry on failure. Default is 3. Maximum is 100.
+* `push: retries_delay`: Delay between each retry in seconds. Default is 60.
+* `push: error_queue`: String. Queue name to post push errors to.
+
+--
 
 ### Update queue
 
