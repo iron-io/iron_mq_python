@@ -200,20 +200,16 @@ class Queue:
 
         return response['body']
 
-    def update(self, subscribers=None, **kwargs):
+    def update(self, options=None):
         url = "queues/%s" % self.name
-        body = kwargs
-        if subscribers is not None:
-            if isinstance(subscribers, list):
-                body.update(self._prepare_subscribers(*subscribers))
-            else:
-                body['subscribers'] = [{'url': subscribers}]
 
-        body = json.dumps({"queue": body})
+        body = json.dumps({})
+        if options is not None:
+            body = json.dumps({"queue": options})
 
         response = self.client.patch(url, body=body,
                                      headers={"Content-Type":"application/json"})
-        return response['body']
+        return response['body']['queue']
 
     def delete_queue(self):
         url = "queues/%s" % self.name
@@ -353,45 +349,23 @@ class IronMQ:
         return Queue(self, queue_name)
 
 
-    def create_queue(self, queue_name, message_timeout=None, message_expiration=None, type=None, subscribers=None, alerts=None):
-        options = {}
-        if message_timeout is not None:
-            options["message_timeout"] = message_timeout
-        if message_expiration is not None:
-            options["message_expiration"] = message_expiration
-        if type is not None:
-            options["type"] = type
-        if subscribers is not None:
-            options["push"] = self._prepare_subscribers(*subscribers)
-        if alerts is not None:
-            options["alerts"] = alerts
-
-        body = json.dumps({"queue": options})
+    def create_queue(self, queue_name, options=None):
+        body = json.dumps({})
+        if options is not None:
+            body = json.dumps({"queue": options})
         url = "queues/%s" % queue_name
-
         response = self.client.put(url, body=body, headers={"Content-Type":"application/json"})
-        return response['body']
+        return response['body']['queue']
 
 
-    def update_queue(self, queue_name, message_timeout=None, message_expiration=None, type=None, subscribers=None, alerts=None):
-        options = {}
-        if message_timeout is not None:
-            options["message_timeout"] = message_timeout
-        if message_expiration is not None:
-            options["message_expiration"] = message_expiration
-        if type is not None:
-            options["type"] = type
-        if subscribers is not None:
-            options["push"] = self._prepare_subscribers(*subscribers)
-        if alerts is not None:
-            options["alerts"] = alerts
-
-        body = json.dumps({"queue": options})
+    def update_queue(self, queue_name, options=None):
+        body = json.dumps({})
+        if options is not None:
+            body = json.dumps({"queue": options})
         url = "queues/%s" % queue_name
-
-        response = self.client.patch(url = url, body=body,
+        response = self.client.patch(url, body=body,
                                        headers={"Content-Type":"application/json"})
-        return response['body']
+        return response['body']['queue']
 
 
     def _prepare_subscribers(self, *subscribers):
