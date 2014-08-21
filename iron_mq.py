@@ -249,34 +249,32 @@ class Queue(object):
         response = self.client.delete(url, body={}, headers={"Content-Type":"application/json"})
         return response['body']
 
-    def add_subscribers(self, subscribers, type=None, retries=None, retries_delay=None, error_queue=None):
-        options = {}
-        options.update(self._prepare_subscribers(*subscribers))
-        if retries is not None:
-            options["retries"] = retries
-        if retries_delay is not None:
-            options["retries_delay"] = retries_delay
-        if error_queue is not None:
-            options["error_queue"] = error_queue
-        queue = {}
-        if type is not None:
-             queue["type"] = type
-        queue["push"] = options
+    def add_subscribers(self, *subscribers):
+        url = "queues/%s/subscribers" % self.name
+        body = json.dumps({'subscribers': subscribers})
 
-        body = json.dumps({"queue": queue})
-        url = "queues/%s" % self.name
+        response = self.client.post(url, body=body,
+                                    headers={"Content-Type":"application/json"})
 
-        response = self.client.put(url = url, body=body,
-                                       headers={"Content-Type":"application/json"})
-        return response['body']['queue']
+        return response['body']
 
-    def remove_subscribers(self):
-        body = json.dumps({"queue": {"push": {"subscribers": [{}]}}})
-        url = "queues/%s" % self.name
+    def remove_subscribers(self, *subscribers):
+        url = "queues/%s/subscribers" % self.name
+        body = json.dumps(self._prepare_subscribers(*subscribers))
+        print(body)
+        response = self.client.delete(url, body=body,
+                                      headers={"Content-Type":"application/json"})
 
-        response = self.client.put(url = url, body=body,
-                                       headers={"Content-Type":"application/json"})
-        return response['body']['queue']
+        return response['body']
+
+    def replace_subscribers(self, *subscribers):
+        url = "queues/%s/subscribers" % self.name
+        body = json.dumps({'subscribers': subscribers})
+
+        response = self.client.put(url, body=body,
+                                      headers={"Content-Type":"application/json"})
+
+        return response['body']
 
     def get_message_push_statuses(self, message_id):
         url = "queues/%s/messages/%s/subscribers" % (self.name, message_id)
@@ -297,7 +295,7 @@ class Queue(object):
         return {'alerts': alerts}
 
     def _prepare_subscribers(self, *subscribers):
-        subscrs = [{'url': ss} for ss in subscribers]
+        subscrs = [{'name': ss} for ss in subscribers]
 
         return {'subscribers': subscrs}
 

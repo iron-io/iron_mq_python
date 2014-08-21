@@ -5,10 +5,9 @@ import time
 
 
 class TestIronMQ(unittest.TestCase):
-
     def setUp(self):
         self.mq =  IronMQ()
-        self.random_number = str(int(random.random() * 10**10))
+        self.random_number = str(int(random.random() * 10 ** 10))
 
     def test_postMessage(self):
         q = self.mq.queue("test_queue")
@@ -36,27 +35,34 @@ class TestIronMQ(unittest.TestCase):
     def test_removeAlerts(self):
         q = self.mq.queue("test_queue")
         q.clear()
-        fixed_alerts = [{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}, {'type': 'fixed', 'direction': 'asc', 'trigger': 10000, 'queue': 'a_q'}, {'type': 'progressive', 'direction': 'asc', 'trigger': 500, 'queue': 'a_q'}]
+        fixed_alerts = [{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'},
+                        {'type': 'fixed', 'direction': 'asc', 'trigger': 10000, 'queue': 'a_q'},
+                        {'type': 'progressive', 'direction': 'asc', 'trigger': 500, 'queue': 'a_q'}]
         response = q.add_alerts(fixed_alerts)
         self.assertEqual(len(response["alerts"]), len(fixed_alerts))
         result = q.remove_alerts()
         self.assertEqual(len(result["alerts"]), 1)
 
     def test_addSubscribers(self):
-        q = self.mq.queue("test_queue%s" % time.time())
-        q.clear()
-        subscribers = [{"url": "http://mysterious-brook-1807.herokuapp.com/ironmq_push_1"}, {"url": "http://mysterious-brook-1807.herokuapp.com/ironmq_push_1"}]
-        response = q.add_subscribers(subscribers)
-        self.assertEqual(len(subscribers), len(response["push"]["subscribers"]))
+        queue_name = "test_queue%s" % time.time()
+        subscribers = [{'name': 'first', 'url': 'http://first.endpoint.xx/process' }]
+        self.mq.create_queue(queue_name, {'push': {'subscribers': subscribers}} )
+        q = self.mq.queue(queue_name)
+        response = q.add_subscribers(*[{'name': 'second', 'url': 'http://first.endpoint.xx/process'}])
+        self.assertEqual(response["msg"], "Updated")
+        info = q.info()
+        self.assertEqual(2, len(info['push']['subscribers']))
 
     def test_removeSubscribers(self):
-        q = self.mq.queue("test_queue%s" % time.time())
-        q.clear()
-        subscribers = [{"url": "http://mysterious-brook-1807.herokuapp.com/ironmq_push_1"}, {"url": "http://mysterious-brook-1807.herokuapp.com/ironmq_push_1"}]
-        response = q.add_subscribers(subscribers)
-        self.assertEqual(len(subscribers), len(response["push"]["subscribers"]))
-        result = q.remove_subscribers()
-        self.assertEqual(len(result["push"]["subscribers"]), 1)
+        queue_name = "test_queue%s" % time.time()
+        subscribers = [{'name': 'first',
+                        'url': 'http://first.endpoint.xx/process'},
+                       {'name': 'second',
+                        'url': 'http://second.endpoint.xx/process'}]
+        self.mq.create_queue(queue_name, {'push': {'subscribers': subscribers}} )
+        q = self.mq.queue(queue_name)
+        response = q.remove_subscribers(*['first', 'second'])
+        self.assertEqual(response["msg"], "Updated")
 
     def test_getMessage(self):
         msg = "%s" % time.time()
@@ -186,6 +192,7 @@ class TestIronMQ(unittest.TestCase):
         q.post("more", "and more")
         response = q.peek(2)
         self.assertEqual(2, len(response["messages"]))
+
 
 if __name__ == '__main__':
     unittest.main()

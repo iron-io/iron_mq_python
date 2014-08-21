@@ -217,13 +217,43 @@ Same as create queue
 ### Add subscribers to a push queue
 
 ```python
-queue.add_subscribers(["http://endpoint1.com", "https://end.point.com/2"])
+subscribers = [
+    {
+        'name': 'first',
+        'url': 'http://first.endpoint.xx/process',
+        'headers': {
+            'Content-Type': 'application/json'
+        }
+    },
+    {
+        'name': 'second',
+        'url': 'http://second.endpoint.xx/process',
+        'headers': {
+            'Content-Type': 'application/json'
+        }
+    }
+]
+queue.add_subscribers(*subscribers)
 ```
 
-### Remove subscribers from a push queue
+### Replace subscribers on a push queue
+
+Sets list of subscribers to a queue. Older subscribers will be removed.
 
 ```python
-queue.remove_subscribers()
+subscribers = [
+    {
+        "name": "the_only",
+        "url": "http://my.over9k.host.com/push"
+    }
+];
+queue.replace_subscribers(*subscribers);
+```
+
+### Remove subscribers by a name from a push queue
+
+```python
+queue.remove_subscribers(*['first', 'second'])
 ```
 
 ### Get the push statuses of a message
