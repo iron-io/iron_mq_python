@@ -61,8 +61,10 @@ class TestIronMQ(unittest.TestCase):
                         'url': 'http://second.endpoint.xx/process'}]
         self.mq.create_queue(queue_name, {'push': {'subscribers': subscribers}} )
         q = self.mq.queue(queue_name)
-        response = q.remove_subscribers(*['first', 'second'])
+        response = q.remove_subscribers(*['first'])
         self.assertEqual(response["msg"], "Updated")
+        info = q.info()
+        self.assertEqual(1, len(info['push']['subscribers']))
 
     def test_getMessage(self):
         msg = "%s" % time.time()

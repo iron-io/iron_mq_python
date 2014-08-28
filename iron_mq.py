@@ -254,7 +254,7 @@ class Queue:
     def remove_subscribers(self, *subscribers):
         url = "queues/%s/subscribers" % self.name
         body = json.dumps(self._prepare_subscribers(*subscribers))
-        print(body)
+
         response = self.client.delete(url, body=body,
                                       headers={"Content-Type":"application/json"})
 
