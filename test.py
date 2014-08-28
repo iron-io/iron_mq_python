@@ -43,6 +43,24 @@ class TestIronMQ(unittest.TestCase):
         result = q.remove_alerts()
         self.assertEqual(len(result["alerts"]), 1)
 
+    def test_touchMessage(self):
+        msg = "Test message %s" % time.time()
+        q = self.mq.queue("test_queue")
+        q.clear()
+        id = q.post(msg)
+        message = q.reserve()
+        response = q.touch(message["messages"][0]["id"], message["messages"][0]["reservation_id"])
+        self.assertEqual("Touched", response["msg"])
+
+    def test_releaseMessage(self):
+        msg = "Test message %s" % time.time()
+        q = self.mq.queue("test_queue")
+        q.clear()
+        id = q.post(msg)
+        message = q.reserve()
+        response = q.release(message_id=message["messages"][0]["id"], reservation_id=message["messages"][0]["reservation_id"])
+        self.assertEqual("Released", response["msg"])
+
     def test_addSubscribers(self):
         queue_name = "test_queue%s" % time.time()
         subscribers = [{'name': 'first', 'url': 'http://first.endpoint.xx/process' }]
