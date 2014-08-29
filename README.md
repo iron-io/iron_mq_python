@@ -30,10 +30,10 @@ ironmq = IronMQ()
 will try reasonable defaults, accepting following optionally:
 
 ```
-ironmq = IronMQ(host="mq-aws-us-east-1.iron.io",
-                project_id="500f7b....b0f302e9",
-                token="Et1En7.....0LuW39Q",
-                protocol="https", port=443,
+ironmq = IronMQ(host='mq-aws-us-east-1.iron.io',
+                project_id='500f7b....b0f302e9',
+                token='Et1En7.....0LuW39Q',
+                protocol='https', port=443,
                 api_version=1,
                 config_file=None)
 ```
@@ -49,13 +49,13 @@ returns list of queues names
 
 we get queue by name:
 ```python
-queue = ironmq.queue("test_queue")
+queue = ironmq.queue('test_queue')
 ```
 
 ### **Push** a message(s) on the queue:
 
 ```python
-queue.post("Hello world")
+queue.post('Hello world')
 ```
 
 Message can be described by dict:
@@ -69,25 +69,32 @@ message = {
 }
 queue.post(message)
 ```
+Can no longer set timeout when posting a message, only when reserving one.
 
 We can post several messages at once:
 ```python
-queue.post("more", "and more", "and more")
+queue.post('more', 'and more', 'and more')
 queue.post(*[str(i) for i in range(10)])
 ```
 
-### **Pop** a message off the queue:
+### Reserve messages
 ```python
-queue.get(max=10, timeout=None) # {"messages": [{'id': '..', 'body': '..'}, ..]}
+queue.reserve(n=10, timeout=None, wait=0, delete=false)
 ```
-Set max to the number of messages to return, 1 by default. An optional `timeout` parameter can be used to specify a per-message timeout, or the timeout the message was posted with will be used.
+All fields are optional.
 
-When you pop/get a message from the queue, it will NOT be deleted.
+- n: The maximum number of messages to get. Default is 1. Maximum is 100. Note: You may not receive all n messages on every request, the more sparse the queue, the less likely you are to receive all n messages.
+- timeout:  After timeout (in seconds), item will be placed back onto queue. You must delete the message from the queue to ensure it does not go back onto the queue. If not set, value from queue is used. Default is 60 seconds, minimum is 30 seconds, and maximum is 86,400 seconds (24 hours).
+- wait: Time to long poll for messages, in seconds. Max is 30 seconds. Default 0.
+- delete: If true, do not put each message back on to the queue after reserving. Default false.
+
+When you reserve a message from the queue, it will NOT be deleted.
 It will eventually go back onto the queue after a timeout if you don't delete it (default timeout is 60 seconds).
+
 
 ### Get message by id
 ```python
-queue.get_message_by_id("xxxxxxxx")
+queue.get_message_by_id('xxxxxxxx')
 ```
 
 ### **Delete** a message from the queue:
@@ -95,13 +102,24 @@ queue.get_message_by_id("xxxxxxxx")
 queue.delete(message_id)
 ```
 Delete a message from the queue when you're done with it.
+```python
+queue.delete(message_id, reservation_id)
+```
+Reserved message could not be deleted without reservation id.
 
 Delete multiple messages in one API call:
 
 ```python
-queue.delete_multiple("xxxxxxxxx", "xxxxxxxxx");
+ids = queue.post('more', 'and more', 'and more')['ids']
+queue.delete_multiple(ids = ids);
 ```
-Delete multiple messages specified by messages id array.
+Delete multiple messages specified by messages id.
+
+```python
+messages = queue.reserve(3)
+queue.delete_multiple(messages = messages);
+```
+Delete multiple messages specified by response after reserving messages. 
 
 ### ***Clear*** a queue:
 ```python
@@ -134,44 +152,108 @@ msgs = queue.peek(max=10) # {"messages": [{'id': '..', 'body': '..'}, ..]}
 To extend the reservation on a reserved message, use touch. The message reservation will be extended by the message's `timeout`.
 
 ```python
-queue.touch(msg_id)
+queue.touch(msg_id, reservation_id='xxxxxxxx')
 ```
+- msg_id: Message id.
+- reservation_id: Reservation id of the message.
 
 ### Release a reserved message
-To release a message that is currently reserved, use release:
+To release a message that is currently reserved by reservation id, use release:
 
 ```python
-queue.release(msg_id, delay=30) # message will be released after delay seconds, 0 by defaults
-```
-
-### Delete a queue
-
-To delete a queue, use `delete_queue`:
-
-```python
-queue.delete_queue()
+queue.release(reservation_id='xxxxxxxx', delay=30) # message will be released after delay seconds, 0 by defaults
 ```
 
 ## Push Queues
 
-### Update Queue Information
-
-To update the queue's push type and subscribers, use update:
+### Create queue
 
 ```python
-queue.update(subscribers=["http://endpoint1.com", "https://end.point.com/2"], push_type"unicast")
+ironmq = IronMQ()
+options = {
+  'message_timeout': 120,
+  'message_expiration': 24 * 3600,
+  'push': {
+    'subscribers': [
+      {
+        'name': 'subscriber_name',
+        'url': 'http://rest-test.iron.io/code/200?store=key1',
+        'headers': {
+          'Content-Type': 'application/json'
+        }
+      }
+    ],
+    'retries': 3,
+    'retries_delay': 30,
+    'error_queue': 'error_queue_name'
+  }
+}
+ironmq.create_queue('queue_name', options)
 ```
+
+**Options:**
+
+* `type`: String or symbol. Queue type. `:pull`, `:multicast`, `:unicast`. Field required and static.
+* `message_timeout`: Integer. Number of seconds before message back to queue if it will not be deleted or touched.
+* `message_expiration`: Integer. Number of seconds between message post to queue and before message will be expired.
+
+**Push queues only:**
+
+* `push: subscribers`: An array of subscriber hashes containing a `name` and a `url` required fields,
+and optional `headers` hash. `headers`'s keys are names and values are means of HTTP headers.
+This set of subscribers will replace the existing subscribers.
+To add or remove subscribers, see the add subscribers endpoint or the remove subscribers endpoint.
+See below for example json.
+* `push: retries`: How many times to retry on failure. Default is 3. Maximum is 100.
+* `push: retries_delay`: Delay between each retry in seconds. Default is 60.
+* `push: error_queue`: String. Queue name to post push errors to.
+
+--
+
+### Update Queue Information
+
+Same as create queue
 
 ### Add subscribers to a push queue
 
 ```python
-queue.add_subscribers(*["http://endpoint1.com", "https://end.point.com/2"])
+subscribers = [
+    {
+        'name': 'first',
+        'url': 'http://first.endpoint.xx/process',
+        'headers': {
+            'Content-Type': 'application/json'
+        }
+    },
+    {
+        'name': 'second',
+        'url': 'http://second.endpoint.xx/process',
+        'headers': {
+            'Content-Type': 'application/json'
+        }
+    }
+]
+queue.add_subscribers(*subscribers)
 ```
 
-### Remove subscribers from a push queue
+### Replace subscribers on a push queue
+
+Sets list of subscribers to a queue. Older subscribers will be removed.
 
 ```python
-queue.remove_subscribers(*["http://endpoint1.com", "https://end.point.com/2"])
+subscribers = [
+    {
+        "name": "the_only",
+        "url": "http://my.over9k.host.com/push"
+    }
+];
+queue.replace_subscribers(*subscribers);
+```
+
+### Remove subscribers by a name from a push queue
+
+```python
+queue.remove_subscribers(*['first', 'second'])
 ```
 
 ### Get the push statuses of a message
@@ -208,13 +290,21 @@ queue.update_alerts(*[progressive_asc_alert])
 ### Remove alerts from a queue
 
 ```python
-q.remove_alerts(*['5305d3b5a3e920763013c796', '513015d32b5a3e763013c796'])
+q.remove_alerts()
 ```
 
 ### Remove single alert from a queue
 
 ```python
 q.remove_alert('5305d3b5a3e920763013c796')
+```
+
+### Delete a queue
+
+To delete a queue, use `delete_queue`:
+
+```python
+queue.delete_queue()
 ```
 
 # Full Documentation
