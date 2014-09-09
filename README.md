@@ -12,10 +12,10 @@ To start using iron_mq_python, you need to sign up and get an OAuth2 token.
 ## Install iron_mq_python
 
 ```sh
-pip install iron-mq
+pip install iron-mq-v3
 ```
 
-or just copy `iron_mq.py` and include it in your script:
+or just copy `iron_mq.py` of v3 and include it in your script:
 
 ```python
 from iron_mq import *
@@ -34,7 +34,7 @@ ironmq = IronMQ(host='mq-aws-us-east-1.iron.io',
                 project_id='500f7b....b0f302e9',
                 token='Et1En7.....0LuW39Q',
                 protocol='https', port=443,
-                api_version=1,
+                api_version=3,
                 config_file=None)
 ```
 
