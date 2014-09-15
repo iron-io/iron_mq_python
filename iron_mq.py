@@ -5,7 +5,7 @@ try:
 except:
     import simplejson as json
 
-class Queue:
+class Queue(object):
     client = None
     name = None
 
