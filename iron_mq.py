@@ -5,7 +5,7 @@ try:
 except:
     import simplejson as json
 
-class Queue:
+class Queue(object):
     client = None
     name = None
 
@@ -235,7 +235,7 @@ class Queue:
 
         return {'subscribers': subscrs}
 
-class IronMQ:
+class IronMQ(object):
     NAME = "iron_mq_python"
     VERSION = "0.5"
     client = None
