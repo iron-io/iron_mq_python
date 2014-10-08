@@ -6,11 +6,7 @@ import time
 
 class TestIronMQ(unittest.TestCase):
     def setUp(self):
-        self.mq =   IronMQ(host="mq-v3-aws-us-east-1.iron.io",
-            project_id = "5433ac2e37c0d2000a000015",
-            token = "WUmafTN45PbOTu1AUedJ",
-            protocol = "https", port = 443, api_version = 3,
-            config_file = None)
+        self.mq = IronMQ()
         self.random_number = str(int(random.random() * 10 ** 10))
 
     def test_postMessage(self):
