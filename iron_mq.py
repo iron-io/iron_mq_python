@@ -84,7 +84,7 @@ class Queue(object):
         if ids is not None:
            items = map(lambda item: {"id": item}, ids)
         if messages is not None:
-           items = map(lambda item: {"id": item["id"] ,"reservation_id": item["reservation_id"]}, messages["messages"])
+           items = map(lambda item: {"id": item["id"] ,"reservation_id": item["reservation_id"]}, messages)
 
         data = json.dumps({"ids": items})
 
@@ -116,7 +116,7 @@ class Queue(object):
         Keyword arguments:
         max -- The maximum number of messages to pull. Defaults to 1.
         """
-        response = self.reserve(max, timeout)
+        response = self.reserve(max, timeout, wait)
         return response
 
 
@@ -144,7 +144,7 @@ class Queue(object):
         response = self.client.post(url, body=body,
                                     headers={"Content-Type":"application/json"})
 
-        return response['body']
+        return response['body']['messages']
 
 
     def get_message_by_id(self, message_id):
@@ -159,7 +159,7 @@ class Queue(object):
 
         response = self.client.get(url)
 
-        return response['body']
+        return response['body']['messages']
 
     def touch(self, message_id, reservation_id = None):
         """Touching a reserved message extends its timeout to the duration specified when the message was created.
