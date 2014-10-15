@@ -6,7 +6,7 @@ import time
 
 class TestIronMQ(unittest.TestCase):
     def setUp(self):
-        self.mq = IronMQ()
+        self.mq =  IronMQ()
         self.random_number = str(int(random.random() * 10 ** 10))
 
     def test_postMessage(self):
@@ -49,7 +49,7 @@ class TestIronMQ(unittest.TestCase):
         q.clear()
         id = q.post(msg)
         message = q.reserve()
-        response = q.touch(message[0]["id"], message[0]["reservation_id"])
+        response = q.touch(message["messages"][0]["id"], message["messages"][0]["reservation_id"])
         self.assertEqual("Touched", response["msg"])
 
     def test_releaseMessage(self):
@@ -58,7 +58,7 @@ class TestIronMQ(unittest.TestCase):
         q.clear()
         id = q.post(msg)
         message = q.reserve()
-        response = q.release(message_id=message[0]["id"], reservation_id=message[0]["reservation_id"])
+        response = q.release(message_id=message["messages"][0]["id"], reservation_id=message["messages"][0]["reservation_id"])
         self.assertEqual("Released", response["msg"])
 
     def test_addSubscribers(self):
@@ -90,7 +90,7 @@ class TestIronMQ(unittest.TestCase):
         q.clear()
         q.post(msg)
         message = q.get()
-        message = "%s" % message[0]["body"]
+        message = "%s" % message["messages"][0]["body"]
         self.assertEqual(msg, message)
 
     def test_reserveMessages(self):
@@ -100,7 +100,7 @@ class TestIronMQ(unittest.TestCase):
         ids = q.post(msg + str(0), msg + str(1), msg + str(2))
         messages = q.reserve(3)
 
-        for idx, val in enumerate(messages):
+        for idx, val in enumerate(messages["messages"]):
             self.assertEqual(msg + str(idx), val["body"])
             self.assertEqual(ids["ids"][idx], val["id"])
             self.assertTrue(len(val["reservation_id"]) > 0)
@@ -112,8 +112,8 @@ class TestIronMQ(unittest.TestCase):
          q.clear()
          id = q.post(msg)
          message = q.reserve()
-         self.assertEqual(msg, message[0]["body"])
-         self.assertEqual(id["ids"][0], message[0]["id"])
+         self.assertEqual(msg, message["messages"][0]["body"])
+         self.assertEqual(id["ids"][0], message["messages"][0]["id"])
 
 
     def test_getMessageTimeout(self):
@@ -122,11 +122,11 @@ class TestIronMQ(unittest.TestCase):
         q.clear()
         q.post(msg)
         message = q.get(timeout=180)
-        message = "%s" % message[0]["body"]
+        message = "%s" % message["messages"][0]["body"]
         self.assertEqual(msg, message)
         time.sleep(120)
         m2 = q.get()
-        self.assertEqual(0, len(m2))
+        self.assertEqual(0, len(m2["messages"]))
         time.sleep(120)
         m3 = q.get()
         self.assertEqual(msg, message)
@@ -148,7 +148,7 @@ class TestIronMQ(unittest.TestCase):
         id = q.post(msg)
         message = q.reserve(1, 60)
         self.assertEqual(1, q.size())
-        reservation_id = message[0]["reservation_id"]
+        reservation_id = message["messages"][0]["reservation_id"]
         q.delete(id["ids"][0], reservation_id)
         self.assertEqual(0, q.size())
 
@@ -178,7 +178,7 @@ class TestIronMQ(unittest.TestCase):
         msg_id = self.mq.postMessage(name, ['hello mq'])['ids'][0]
 
         resp = self.mq.getMessage(name)
-        self.assertEqual(msg_id, resp[-1]['id'])
+        self.assertEqual(msg_id, resp['messages'][-1]['id'])
 
     def test_postAndDeleteMultipleMessages(self):
         q = self.mq.queue("test_queue")
@@ -211,7 +211,7 @@ class TestIronMQ(unittest.TestCase):
         q.clear()
         q.post("more", "and more")
         response = q.peek(2)
-        self.assertEqual(2, len(response))
+        self.assertEqual(2, len(response["messages"]))
 
 
 if __name__ == '__main__':
