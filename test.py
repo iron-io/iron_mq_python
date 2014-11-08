@@ -52,6 +52,17 @@ class TestIronMQ(unittest.TestCase):
         response = q.touch(message["messages"][0]["id"], message["messages"][0]["reservation_id"])
         self.assertEqual("Touched", response["msg"])
 
+    def test_touchMessageTwice(self):
+        msg = "Test message %s" % time.time()
+        q = self.mq.queue("test_queue")
+        q.clear()
+        id = q.post(msg)
+        message = q.reserve()
+        response = q.touch(message["messages"][0]["id"], message["messages"][0]["reservation_id"])
+        # use new reservation_id
+        response = q.touch(message["messages"][0]["id"], response["reservation_id"])
+        self.assertEqual("Touched", response["msg"])
+
     def test_releaseMessage(self):
         msg = "Test message %s" % time.time()
         q = self.mq.queue("test_queue")
