@@ -9,8 +9,7 @@ except:
 if sys.version_info.major > 2:
     basestring = str
 
-
-class Queue:
+class Queue(object):
     client = None
     name = None
 
@@ -71,7 +70,7 @@ class Queue:
         messages -- An array of messages to be deleted from the queue.
         """
         url = "queues/%s/messages" % self.name
-        
+
         data = json.dumps({"ids": messages})
         result = self.client.delete(url=url, body=data,
                                   headers={"Content-Type":"application/json"})
@@ -240,7 +239,7 @@ class Queue:
 
         return {'subscribers': subscrs}
 
-class IronMQ:
+class IronMQ(object):
     NAME = "iron_mq_python"
     VERSION = "0.5"
     client = None
@@ -269,7 +268,7 @@ class IronMQ:
             options['page'] = page
         if per_page is not None:
             options['per_page'] = per_page
-        
+
         query = urllib.urlencode(options)
         url = "queues"
         if query != "":
