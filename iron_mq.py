@@ -1,9 +1,16 @@
 import iron_core
 import urllib
+
 try:
     import json
 except:
     import simplejson as json
+
+try:
+    basestring
+except NameError:
+    basestring = str
+
 
 class Queue(object):
     client = None
@@ -66,7 +73,7 @@ class Queue(object):
         messages -- An array of messages to be deleted from the queue.
         """
         url = "queues/%s/messages" % self.name
-        
+
         data = json.dumps({"ids": messages})
         result = self.client.delete(url=url, body=data,
                                   headers={"Content-Type":"application/json"})
@@ -264,7 +271,7 @@ class IronMQ(object):
             options['page'] = page
         if per_page is not None:
             options['per_page'] = per_page
-        
+
         query = urllib.urlencode(options)
         url = "queues"
         if query != "":
