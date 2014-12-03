@@ -5,6 +5,12 @@ try:
 except:
     import simplejson as json
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
+
 class Queue(object):
     client = None
     name = None
