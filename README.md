@@ -99,7 +99,7 @@ Delete a message from the queue when you're done with it.
 Delete multiple messages in one API call:
 
 ```python
-queue.delete_multiple("xxxxxxxxx", "xxxxxxxxx");
+queue.delete_multiple("xxxxxxxxx", "xxxxxxxxx")
 ```
 Delete multiple messages specified by messages id array.
 
