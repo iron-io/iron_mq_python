@@ -52,7 +52,7 @@ we get queue by name:
 queue = ironmq.queue('test_queue')
 ```
 
-### **Push** a message(s) on the queue:
+### Push a message(s) on the queue:
 
 ```python
 queue.post('Hello world')
@@ -97,7 +97,7 @@ It will eventually go back onto the queue after a timeout if you don't delete it
 queue.get_message_by_id('xxxxxxxx')
 ```
 
-### **Delete** a message from the queue:
+### Delete a message from the queue:
 ```python
 queue.delete(message_id)
 ```
@@ -109,11 +109,8 @@ Reserved message could not be deleted without reservation id.
 
 Delete multiple messages in one API call:
 
-```python
-ids = queue.post('more', 'and more', 'and more')['ids']
-queue.delete_multiple(ids = ids);
-```
-Delete multiple messages specified by messages id.
+**FIXME**: method `delete_multiple` supports `ids` parameters.
+IronMQ v3 does not support delete messages without reservation ids.
 
 ```python
 messages = queue.reserve(3)
@@ -121,12 +118,12 @@ queue.delete_multiple(messages = messages);
 ```
 Delete multiple messages specified by response after reserving messages. 
 
-### ***Clear*** a queue:
+### Clear a queue:
 ```python
 queue.clear()
 ```
 
-### Get queue ***size***, ***id***, ***total_messages*** and whole ***info***
+### Get queue information
 ```python
 queue.info()
  # {u'id': u'502d03d3211a8f5e7742d224',
@@ -140,8 +137,10 @@ queue.total_messages() # 17
 queue.id() # u'502d03d3211a8f5e7742d224'
 ```
 
-### Peek at messages
-To view messages without reserving them, use peek:
+### Peek messages
+
+Get messages without reservation. It does not remove messages from a queue.
+So that, after peeking messages, they will be available to reserve or peek.
 
 ```python
 msgs = queue.peek(max=10) # {"messages": [{'id': '..', 'body': '..'}, ..]}
@@ -149,22 +148,21 @@ msgs = queue.peek(max=10) # {"messages": [{'id': '..', 'body': '..'}, ..]}
 
 ### Touch a message
 
-To extend the reservation on a reserved message, use touch. The message reservation will be extended by the message's `timeout`.
+To extend the reservation on a reserved message, use touch. The message reservation will be extended by provided `timeout` seconds. If `timeout` is not set, current queue timeout will be used (**FIXME**: currently not supported by the library).
 
 ```python
-queue.touch(msg_id, reservation_id='xxxxxxxx')
+queue.touch(msg_id, reservation_id, timeout=10)
 ```
-- msg_id: Message id.
-- reservation_id: Reservation id of the message.
 
-### Release a reserved message
-To release a message that is currently reserved by reservation id, use release:
+### Release reserved message
+
+It releases the message by its ID and reservation ID. Optional parameter `delay` signalise after how many seconds the message must be released. (**FIXME**: old example was completely wrong, `release` method signature must be updated to follow new example).
 
 ```python
-queue.release(reservation_id='xxxxxxxx', delay=30) # message will be released after delay seconds, 0 by defaults
+queue.release(msg_id, reservation_id, delay=30)
 ```
 
-## Push Queues
+## Queues
 
 ### Create queue
 
@@ -193,7 +191,7 @@ ironmq.create_queue('queue_name', options)
 
 **Options:**
 
-* `type`: String or symbol. Queue type. `:pull`, `:multicast`, `:unicast`. Field required and static.
+* `type`: String or symbol. Queue type. `:pull`, `:multicast`, `:unicast`. Field is static. Once set, it cannot be changed.
 * `message_timeout`: Integer. Number of seconds before message back to queue if it will not be deleted or touched.
 * `message_expiration`: Integer. Number of seconds between message post to queue and before message will be expired.
 
@@ -214,7 +212,7 @@ See below for example json.
 
 Same as create queue
 
-### Add subscribers to a push queue
+### Add or update subscribers on a push queue
 
 ```python
 subscribers = [
@@ -253,7 +251,7 @@ queue.replace_subscribers(*subscribers);
 ### Remove subscribers by a name from a push queue
 
 ```python
-queue.remove_subscribers(*['first', 'second'])
+queue.remove_subscribers('first', 'second')
 ```
 
 ### Get the push statuses of a message
@@ -264,10 +262,10 @@ queue.get_message_push_statuses(message_id) # {"subscribers": [{"retries_delay":
 
 ### Delete a pushed message
 
-If you respond with a 202 status code, the pushed message will be reserved, not deleted, and should be manually deleted. You can get the message ID and subscriber ID from the push message's headers.
+If you respond with a 202 status code, the pushed message will be reserved, not deleted, and should be manually deleted. You can get the message ID, reservation ID, and subscriber name from push request headers. (**FIXME**: current version does not support right URL and request body formats).
 
 ```python
-queue.delete_message_push_status(message_id, subscriber_id)
+queue.delete_message_push_status(message_id, reservation_id, subscriber_name)
 ```
 
 ## Pull queues
@@ -311,5 +309,5 @@ queue.delete_queue()
 
 You can find more documentation here:
 
-* http://iron.io
 * http://dev.iron.io
+* http://iron.io
