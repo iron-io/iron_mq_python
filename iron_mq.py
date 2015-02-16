@@ -33,7 +33,7 @@ class Queue(object):
         url = "queues/%s" % (self.name,)
         result = self.client.get(url)
 
-        return result["body"]["queue"]
+        return result['body']['queue']
 
     def size(self):
         """Queue size"""
@@ -53,26 +53,28 @@ class Queue(object):
         url = "queues/%s/messages" % self.name
         result = self.client.delete(url = url,
                                     body = json.dumps({}),
-                                    headers={"Content-Type":"application/json"})
+                                    headers={'Content-Type': 'application/json'})
 
         return result['body']
 
-    def delete(self,  message_id, reservation_id=None):
+    def delete(self,  message_id, reservation_id=None, subscriber_name=None):
         """Execute an HTTP request to delete a message from queue.
 
         Arguments:
         message_id -- The ID of the message to be deleted.
         reservation_id -- Reservation Id of the message. Reserved message could not be deleted without reservation Id.
+        subscriber_name -- This is required to acknowledge push after long-processing of message is finished.
         """
         url = "queues/%s/messages/%s" % (self.name, message_id)
         qitems = {}
         if reservation_id is not None:
-           qitems["reservation_id"] = reservation_id
+            qitems['reservation_id'] = reservation_id
+        if subscriber_name is not None:
+            qitems['subscriber_name'] = subscriber_name
         body = json.dumps(qitems)
 
-        result = self.client.delete(url = url,
-                                    body = body,
-                                    headers={"Content-Type":"application/json"})
+        result = self.client.delete(url=url, body=body,
+                                    headers={'Content-Type': 'application/json'})
 
         return result["body"]
 
@@ -87,17 +89,18 @@ class Queue(object):
 
         items = None
         if ids is None and messages is None:
-             raise Exception("Please, specify at least one parameter.")
+             raise Exception('Please, specify at least one parameter.')
         if ids is not None:
-           items = map(lambda item: {"id": item}, ids)
+           items = map(lambda item: {'id': item}, ids)
         if messages is not None:
-           items = map(lambda item: {"id": item["id"] ,"reservation_id": item["reservation_id"]}, messages["messages"])
+           items = map(lambda item: {'id': item['id'] ,'reservation_id': item['reservation_id']},
+                       messages['messages'])
 
-        data = json.dumps({"ids": items})
+        data = json.dumps({'ids': items})
 
         result = self.client.delete(url=url, body=data,
-                                  headers={"Content-Type":"application/json"})
-        return result["body"]
+                                    headers={'Content-Type': 'application/json'})
+        return result['body']
 
     def post(self, *messages):
         """Executes an HTTP request to create message on the queue.
@@ -108,12 +111,12 @@ class Queue(object):
         """
         url = "queues/%s/messages" % self.name
 
-        msgs = [{'body':msg} if isinstance(msg, basestring) else msg
+        msgs = [{'body': msg} if isinstance(msg, basestring) else msg
                 for msg in messages]
-        data = json.dumps({"messages": msgs})
+        data = json.dumps({'messages': msgs})
 
         result = self.client.post(url=url, body=data,
-                                  headers={"Content-Type":"application/json"})
+                                  headers={'Content-Type': 'application/json'})
 
         return result['body']
 
@@ -139,17 +142,17 @@ class Queue(object):
         url = "queues/%s/reservations" % self.name
         qitems = {}
         if max is not None:
-            qitems["n"] = max
+            qitems['n'] = max
         if timeout is not None:
-            qitems["timeout"] = timeout
+            qitems['timeout'] = timeout
         if wait is not None:
-            qitems["wait"] = wait
+            qitems['wait'] = wait
         if delete is not None:
-            qitems["delete"] = delete
+            qitems['delete'] = delete
         body = json.dumps(qitems)
 
         response = self.client.post(url, body=body,
-                                    headers={"Content-Type":"application/json"})
+                                    headers={'Content-Type': 'application/json'})
 
         return response['body']
 
@@ -157,7 +160,7 @@ class Queue(object):
     def get_message_by_id(self, message_id):
         url = "queues/%s/messages/%s" % (self.name, message_id)
         response = self.client.get(url)
-        return response["body"]["message"]
+        return response['body']['message']
 
     def peek(self, max=None):
         url = "queues/%s/messages" % self.name
@@ -168,42 +171,41 @@ class Queue(object):
 
         return response['body']
 
-    def touch(self, message_id, reservation_id = None):
+    def touch(self, message_id, reservation_id, timeout=None):
         """Touching a reserved message extends its timeout to the duration specified when the message was created.
 
         Arguments:
         message_id -- The ID of the message.
-        reservation_id -- Reservation Id of the message. Reserved message could not be deleted without reservation Id.
+        reservation_id -- Reservation Id of the message.
+        timeout -- Optional. The timeout in seconds after which new reservation will expire.
         """
         url = "queues/%s/messages/%s/touch" % (self.name, message_id)
-        qitems = {}
-        if reservation_id is not None:
-            qitems["reservation_id"] = reservation_id
+        qitems = {'reservation_id': reservation_id}
+        if timeout is not None:
+            qitems['timeout'] = timeout
         body = json.dumps(qitems)
 
         response = self.client.post(url, body=body,
-                                    headers={"Content-Type":"application/json"})
+                                    headers={'Content-Type': 'application/json'})
 
         return response['body']
 
-    def release(self, message_id, delay=0, reservation_id = None):
+    def release(self, message_id, reservation_id, delay=0):
         """Release locked message after specified time. If there is no message with such id on the queue.
 
         Arguments:
         message_id -- The ID of the message.
+        reservation_id -- Reservation Id of the message.
         delay -- The time after which the message will be released.
-        reservation_id -- Reservation Id of the message. Reserved message could not be deleted without reservation Id.
         """
         url = "queues/%s/messages/%s/release" % (self.name, message_id)
-        body = {}
+        body = {'reservation_id': reservation_id}
         if delay > 0:
             body['delay'] = delay
-        if reservation_id is not None:
-            body["reservation_id"] = reservation_id
         body = json.dumps(body)
 
         response = self.client.post(url, body=body,
-                                    headers={"Content-Type":"application/json"})
+                                    headers={'Content-Type': 'application/json'})
 
         return response['body']
 
@@ -212,10 +214,10 @@ class Queue(object):
 
         body = json.dumps({})
         if options is not None:
-            body = json.dumps({"queue": options})
+            body = json.dumps({'queue': options})
 
         response = self.client.patch(url, body=body,
-                                     headers={"Content-Type":"application/json"})
+                                     headers={'Content-Type': 'application/json'})
         return response['body']['queue']
 
     def delete_queue(self):
@@ -226,27 +228,27 @@ class Queue(object):
         return response['body']
 
     def add_alerts(self, *alerts):
-        body = json.dumps({"queue": {"alerts": alerts}})
+        body = json.dumps({'queue': {'alerts': alerts}})
         url = "queues/%s" % self.name
 
         response = self.client.patch(url = url, body=body,
-                                       headers={"Content-Type":"application/json"})
+                                       headers={'Content-Type': 'application/json'})
         return response['body']['queue']
 
     def update_alerts(self, *alerts):
         self.add_alerts(*alerts)
 
     def remove_alerts(self):
-        body = json.dumps({"queue": {"alerts": [{}]}})
+        body = json.dumps({'queue': {'alerts': [{}]}})
         url = "queues/%s" % self.name
 
         response = self.client.patch(url = url, body=body,
-                                       headers={"Content-Type":"application/json"})
+                                       headers={'Content-Type': 'application/json'})
         return response['body']['queue']
 
     def remove_alert(self, alert_id):
         url = "queues/%s/alerts/%s" % (self.name, alert_id)
-        response = self.client.delete(url, body={}, headers={"Content-Type":"application/json"})
+        response = self.client.delete(url, body={}, headers={'Content-Type': 'application/json'})
         return response['body']
 
     def add_subscribers(self, *subscribers):
@@ -254,7 +256,7 @@ class Queue(object):
         body = json.dumps({'subscribers': subscribers})
 
         response = self.client.post(url, body=body,
-                                    headers={"Content-Type":"application/json"})
+                                    headers={'Content-Type': 'application/json'})
 
         return response['body']
 
@@ -263,7 +265,7 @@ class Queue(object):
         body = json.dumps(self._prepare_subscribers(*subscribers))
 
         response = self.client.delete(url, body=body,
-                                      headers={"Content-Type":"application/json"})
+                                      headers={'Content-Type': 'application/json'})
 
         return response['body']
 
@@ -272,7 +274,7 @@ class Queue(object):
         body = json.dumps({'subscribers': subscribers})
 
         response = self.client.put(url, body=body,
-                                      headers={"Content-Type":"application/json"})
+                                      headers={'Content-Type': 'application/json'})
 
         return response['body']
 
@@ -280,13 +282,6 @@ class Queue(object):
         url = "queues/%s/messages/%s/subscribers" % (self.name, message_id)
 
         response = self.client.get(url)
-
-        return response['body']
-
-    def delete_message_push_status(self, message_id, subscriber_id):
-        url = "queues/%s/messages/%s/subscribers/%s" % (self.name, message_id, subscriber_id)
-
-        response = self.client.delete(url)
 
         return response['body']
 
@@ -300,8 +295,8 @@ class Queue(object):
         return {'subscribers': subscrs}
 
 class IronMQ(object):
-    NAME = "iron_mq_python"
-    VERSION = "0.5"
+    NAME = 'iron_mq_python'
+    VERSION = '0.9.1'
     API_VERSION = 3
     client = None
     name = None
@@ -313,7 +308,7 @@ class IronMQ(object):
         documentation for a full list and possible values."""
         if name is not None:
             self.name = name
-        kwargs["api_version"] = kwargs.get("api_version") or IronMQ.API_VERSION
+        kwargs['api_version'] = kwargs.get('api_version') or IronMQ.API_VERSION
 
         self.client = iron_core.IronClient(name=IronMQ.NAME,
                 version=IronMQ.VERSION, product="iron_mq", **kwargs)
@@ -337,12 +332,12 @@ class IronMQ(object):
             options['prefix'] = prefix
 
         query = urllib.urlencode(options)
-        url = "queues"
-        if query != "":
+        url = 'queues'
+        if query != '':
             url = "%s?%s" % (url, query)
         result = self.client.get(url)
 
-        return [queue["name"] for queue in result["body"]["queues"]]
+        return [queue['name'] for queue in result['body']['queues']]
 
 
     def queue(self, queue_name):
@@ -357,9 +352,9 @@ class IronMQ(object):
     def create_queue(self, queue_name, options=None):
         body = json.dumps({})
         if options is not None:
-            body = json.dumps({"queue": options})
+            body = json.dumps({'queue': options})
         url = "queues/%s" % queue_name
-        response = self.client.put(url, body=body, headers={"Content-Type":"application/json"})
+        response = self.client.put(url, body=body, headers={'Content-Type': 'application/json'})
         return response['body']['queue']
 
 
@@ -369,7 +364,7 @@ class IronMQ(object):
             body = json.dumps({"queue": options})
         url = "queues/%s" % queue_name
         response = self.client.patch(url, body=body,
-                                       headers={"Content-Type":"application/json"})
+                                       headers={'Content-Type': 'application/json'})
         return response['body']['queue']
 
 
