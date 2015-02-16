@@ -170,7 +170,7 @@ reservation will be extended by provided `timeout` seconds. If `timeout` is not
 set, current queue timeout will be used.
 
 ```python
-queue.touch(msg_id, reservation_id, timeout=10)
+queue.touch(message_id, reservation_id, timeout=10)
 ```
 
 ### Release reserved message
@@ -179,7 +179,7 @@ It releases the message by its ID and reservation ID. Optional parameter `delay`
 signalise after how many seconds the message must be released.
 
 ```python
-queue.release(msg_id, reservation_id, delay=30)
+queue.release(message_id, reservation_id, delay=30)
 ```
 
 ## Queues

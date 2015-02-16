@@ -47,8 +47,7 @@ class Queue(object):
         return self.info()['total_messages']
 
     def clear(self):
-        """Executes an HTTP request to clear all contents of a queue.
-        """
+        """Executes an HTTP request to clear all contents of a queue."""
         url = "queues/%s/messages" % self.name
         result = self.client.delete(url = url,
                                     body = json.dumps({}),
@@ -75,14 +74,14 @@ class Queue(object):
         result = self.client.delete(url=url, body=body,
                                     headers={'Content-Type': 'application/json'})
 
-        return result["body"]
+        return result['body']
 
     def delete_multiple(self, ids=None, messages=None):
         """Execute an HTTP request to delete messages from queue.
 
         Arguments:
         ids -- A list of messages id to be deleted from the queue.
-  ]     messages -- Response to message reserving.
+        messages -- Response to message reserving.
         """
         url = "queues/%s/messages" % self.name
 
@@ -310,7 +309,7 @@ class IronMQ(object):
         kwargs['api_version'] = kwargs.get('api_version') or IronMQ.API_VERSION
 
         self.client = iron_core.IronClient(name=IronMQ.NAME,
-                version=IronMQ.VERSION, product="iron_mq", **kwargs)
+                version=IronMQ.VERSION, product='iron_mq', **kwargs)
 
 
     def queues(self, page=None, per_page=None, previous=None, prefix=None):
@@ -322,7 +321,7 @@ class IronMQ(object):
         """
         options = {}
         if page is not None:
-            raise Exception("page param is deprecated!")
+            raise Exception('page param is deprecated!')
         if per_page is not None:
             options['per_page'] = per_page
         if previous is not None:
@@ -360,7 +359,7 @@ class IronMQ(object):
     def update_queue(self, queue_name, options=None):
         body = json.dumps({})
         if options is not None:
-            body = json.dumps({"queue": options})
+            body = json.dumps({'queue': options})
         url = "queues/%s" % queue_name
         response = self.client.patch(url, body=body,
                                        headers={'Content-Type': 'application/json'})
