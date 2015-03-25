@@ -124,7 +124,7 @@ class Queue(object):
         Keyword arguments:
         max -- The maximum number of messages to pull. Defaults to 1.
         """
-        response = self.reserve(max, timeout)
+        response = self.reserve(max, timeout, wait)
         return response
 
 
