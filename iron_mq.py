@@ -230,24 +230,22 @@ class Queue(object):
         body = json.dumps({'queue': {'alerts': alerts}})
         url = "queues/%s" % self.name
 
-        response = self.client.patch(url = url, body=body,
-                                       headers={'Content-Type': 'application/json'})
+        response = self.client.patch(url=url, body=body,
+                                     headers={'Content-Type': 'application/json'})
         return response['body']['queue']
 
     def update_alerts(self, *alerts):
-        self.add_alerts(*alerts)
-
-    def remove_alerts(self):
-        body = json.dumps({'queue': {'alerts': [{}]}})
+        body = json.dumps({'queue': {'alerts': alerts}})
         url = "queues/%s" % self.name
 
-        response = self.client.patch(url = url, body=body,
-                                       headers={'Content-Type': 'application/json'})
+        response = self.client.put(url=url, body=body,
+                                   headers={'Content-Type': 'application/json'})
         return response['body']['queue']
 
-    def remove_alert(self, alert_id):
-        url = "queues/%s/alerts/%s" % (self.name, alert_id)
-        response = self.client.delete(url, body={}, headers={'Content-Type': 'application/json'})
+    def remove_alerts(self, *alerts):
+        url = "queues/%s/alerts" % self.name
+        body = json.dumps({'queue':{'alerts': alerts}})
+        response = self.client.delete(url, body=body, headers={"Content-Type":"application/json"})
         return response['body']
 
     def add_subscribers(self, *subscribers):

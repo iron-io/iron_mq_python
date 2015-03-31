@@ -232,6 +232,8 @@ See below for example json.
 
 Same as create queue
 
+## Push Queues
+
 ### Add or update subscribers on a push queue
 
 ```python
@@ -300,6 +302,13 @@ progressive_asc_alert = {'type': 'progressive', 'direction': 'asc', 'trigger': 1
 queue.add_alerts(*[fixed_desc_alert, progressive_asc_alert])
 ```
 
+#### You can add single alert to a queue
+
+```python
+fixed_desc_alert = {'name': 'progressive-alert', 'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'q'}
+queue.add_alerts(fixed_desc_alert)
+```
+
 ### Update alerts in a queue
 
 ```python
@@ -310,13 +319,7 @@ queue.update_alerts(*[progressive_asc_alert])
 ### Remove alerts from a queue
 
 ```python
-q.remove_alerts()
-```
-
-### Remove single alert from a queue
-
-```python
-q.remove_alert('5305d3b5a3e920763013c796')
+q.remove_alerts(*[{name: 'progressive-alert'}])
 ```
 
 ### Delete a queue
