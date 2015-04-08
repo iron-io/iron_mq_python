@@ -293,7 +293,7 @@ class Queue(object):
 
 class IronMQ(object):
     NAME = 'iron_mq_python'
-    VERSION = '0.6'
+    VERSION = '0.7'
     API_VERSION = 3
     client = None
     name = None
