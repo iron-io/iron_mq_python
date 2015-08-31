@@ -244,7 +244,7 @@ class Queue(object):
 
 class IronMQ(object):
     NAME = "iron_mq_python"
-    VERSION = "0.5"
+    VERSION = "0.7"
     client = None
     name = None
 
