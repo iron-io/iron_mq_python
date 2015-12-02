@@ -30,7 +30,7 @@ ironmq = IronMQ()
 will try reasonable defaults, accepting following optionally:
 
 ```
-ironmq = IronMQ(host='mq-aws-us-east-1.iron.io',
+ironmq = IronMQ(host='mq-aws-us-east-1-1.iron.io',
                 project_id='500f7b....b0f302e9',
                 token='Et1En7.....0LuW39Q',
                 protocol='https', port=443,
@@ -82,12 +82,12 @@ queue.post(*[str(i) for i in range(10)])
 ### Reserve messages
 
 ```python
-queue.reserve(n=10, timeout=None, wait=0, delete=false)
+queue.reserve(max=10, timeout=None, wait=0, delete=False)
 ```
 
 All fields are optional.
 
-- n: The maximum number of messages to get. Default is 1. Maximum is 100. Note: You may not receive all n messages on every request, the more sparse the queue, the less likely you are to receive all n messages.
+- max: The maximum number of messages to get. Default is 1. Maximum is 100. Note: You may not receive all n messages on every request, the more sparse the queue, the less likely you are to receive all n messages.
 - timeout:  After timeout (in seconds), item will be placed back onto queue. You must delete the message from the queue to ensure it does not go back onto the queue. If not set, value from queue is used. Default is 60 seconds, minimum is 30 seconds, and maximum is 86,400 seconds (24 hours).
 - wait: Time to long poll for messages, in seconds. Max is 30 seconds. Default 0.
 - delete: If true, do not put each message back on to the queue after reserving. Default false.
@@ -141,15 +141,15 @@ queue.clear()
 
 ```python
 queue.info()
- # {u'id': u'502d03d3211a8f5e7742d224',
- # u'name': u'queue12',
- # u'reserved': 0,
+ # {u'name': u'queue12',
+ # u'project_id': u'54f95a43ecbd7e000800002a',
+ # u'message_timeout': 60,
+ # u'message_expiration': 604800,
  # u'size': 15,
  # u'total_messages': 17}
 queue.size() # 15
 queue.name
 queue.total_messages() # 17
-queue.id() # u'502d03d3211a8f5e7742d224'
 ```
 
 ### Peek messages
