@@ -87,7 +87,7 @@ queue.reserve(max=10, timeout=None, wait=0, delete=False)
 
 All fields are optional.
 
-- max: The maximum number of messages to get. Default is 1. Maximum is 100. Note: You may not receive all n messages on every request, the more sparse the queue, the less likely you are to receive all n messages.
+- max: The maximum number of messages to get. Default is 1. Maximum is 100. Note: You may not receive all max messages on every request, the more sparse the queue, the less likely you are to receive all max messages.
 - timeout:  After timeout (in seconds), item will be placed back onto queue. You must delete the message from the queue to ensure it does not go back onto the queue. If not set, value from queue is used. Default is 60 seconds, minimum is 30 seconds, and maximum is 86,400 seconds (24 hours).
 - wait: Time to long poll for messages, in seconds. Max is 30 seconds. Default 0.
 - delete: If true, do not put each message back on to the queue after reserving. Default false.
