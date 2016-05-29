@@ -90,10 +90,10 @@ class Queue(object):
         if ids is None and messages is None:
              raise Exception('Please, specify at least one parameter.')
         if ids is not None:
-           items = map(lambda item: {'id': item}, ids)
+           items = [{'id': item} for item in ids]
         if messages is not None:
-           items = map(lambda item: {'id': item['id'] ,'reservation_id': item['reservation_id']},
-                       messages['messages'])
+           items = [{'id': item['id'], 'reservation_id': item['reservation_id']} for item in
+                 messages['messages']]
 
         data = json.dumps({'ids': items})
 
