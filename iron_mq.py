@@ -1,5 +1,9 @@
 import iron_core
-import urllib
+
+try:
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
 
 try:
     import json
@@ -328,7 +332,7 @@ class IronMQ(object):
         if prefix is not None:
             options['prefix'] = prefix
 
-        query = urllib.urlencode(options)
+        query = urlencode(options)
         url = 'queues'
         if query != '':
             url = "%s?%s" % (url, query)
