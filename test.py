@@ -15,38 +15,6 @@ class TestIronMQ(unittest.TestCase):
         q.post("test message")
         self.assertEqual(old_size, q.size() - 1)
 
-    def test_addAlerts(self):
-        queue_name = "test_queue_%s" % time.time()
-        self.mq.create_queue(queue_name)
-        q = self.mq.queue(queue_name)
-        fixed_alert = [{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}]
-        response = q.add_alerts(*fixed_alert)
-        self.assertTrue("alerts" in response)
-
-
-    def test_infoShouldReturnAlerts(self):
-        q = self.mq.queue("test_queue")
-        q.clear()
-        fixed_alert = [{'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'}]
-        q.add_alerts(*fixed_alert)
-        info = q.info()
-        self.assertTrue('alerts' in info)
-        self.assertEqual(len(info['alerts']), 1)
-
-    def test_removeAlerts(self):
-        queue_name = "test_queue_%s" % time.time()
-        self.mq.create_queue(queue_name)
-        q = self.mq.queue(queue_name)
-        q.add_alerts({'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'a_q'},
-                     {'type': 'fixed', 'direction': 'asc', 'trigger': 10000, 'queue': 'a_q'},
-                     {'type': 'progressive', 'direction': 'asc', 'trigger': 500, 'queue': 'a_q'})
-        alerts = [alert['id'] for alert in q.info()['alerts']][0:2]
-        last_alert = q.info()['alerts'][2]
-        result = q.remove_alerts(*alerts)
-        self.assertEqual(result['msg'], 'Alerts were deleted.')
-        self.assertEqual(len(q.info()['alerts']), 1)
-        self.assertEqual(q.info()['alerts'][0]['id'], last_alert['id'])
-
     def test_touchMessage(self):
         msg = "Test message %s" % time.time()
         q = self.mq.queue("test_queue")

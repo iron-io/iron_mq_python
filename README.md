@@ -292,33 +292,6 @@ queue.delete(message_id, reservation_id, subscriber_name)
 
 ## Pull queues
 
-### Add alerts to a queue
-
-```python
-fixed_desc_alert = {'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'q'}
-progressive_asc_alert = {'type': 'progressive', 'direction': 'asc', 'trigger': 10000, 'queue': 'q'}
-queue.add_alerts(*[fixed_desc_alert, progressive_asc_alert])
-```
-
-#### You can add single alert to a queue
-
-```python
-fixed_desc_alert = {'name': 'progressive-alert', 'type': 'fixed', 'direction': 'desc', 'trigger': 1000, 'queue': 'q'}
-queue.add_alerts(fixed_desc_alert)
-```
-
-### Update alerts in a queue
-
-```python
-progressive_asc_alert = {'type': 'progressive', 'direction': 'asc', 'trigger': 5000, 'queue': 'q'}
-queue.update_alerts(*[progressive_asc_alert])
-```
-
-### Remove alerts from a queue
-
-```python
-q.remove_alerts(*[{name: 'progressive-alert'}])
-```
 
 ### Delete a queue
 
